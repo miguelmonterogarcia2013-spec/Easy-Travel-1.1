@@ -1,1 +1,424 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Easy Travel PRO</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Poppins,sans-serif}
+body{
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background-size:cover;
+  background-position:center;
+  transition:1s;
+}
+.app{
+  width:95%;
+  max-width:430px;
+  background:rgba(0,0,0,0.85);
+  backdrop-filter:blur(12px);
+  border-radius:25px;
+  padding:20px;
+  color:#fff;
+}
+h1{text-align:center;margin-bottom:15px}
+input{
+  width:100%;
+  padding:10px;
+  border:none;
+  border-radius:12px;
+  margin-bottom:10px;
+}
+button{
+  width:100%;
+  padding:12px;
+  margin-bottom:10px;
+  border:none;
+  border-radius:15px;
+  font-weight:600;
+  cursor:pointer;
+}
+#map{height:300px;margin-top:10px;border-radius:15px;display:none}
+.card{
+  background:rgba(255,255,255,0.1);
+  padding:12px;
+  border-radius:15px;
+  margin-top:10px;
+}
+.price{color:#4cff4c;font-weight:700}
+.itinerario{
+  background:rgba(255,255,255,0.08);
+  padding:10px;
+  border-radius:15px;
+  margin-top:10px;
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+<h1>Easy Travel PRO</h1>
+
+<input type="text" id="origen" placeholder="Ciudad de salida">
+<input type="text" id="destino" placeholder="Destino">
+<input type="date" id="salida">
+<input type="date" id="llegada">
+<input type="number" id="pasajeros" value="1" min="1">
+
+<button onclick="buscar()">Buscar Viaje</button>
+<button onclick="activarUbicacion()">Usar mi ubicación</button>
+
+<div id="map"></div>
+<div id="resultados"></div>
+<div id="itinerario"></div>
+
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+
+// ===== FONDO DINÁMICO =====
+const fondos=[
+"https://images.unsplash.com/photo-1502602898657-3e91760cbb34",
+"https://images.unsplash.com/photo-1499856871958-5b9627545d1a",
+"https://images.unsplash.com/photo-1505761671935-60b3a7427bad"
+];
+let fondoIndex=0;
+function cambiarFondo(){
+ document.body.style.backgroundImage=`url(${fondos[fondoIndex]})`;
+ fondoIndex=(fondoIndex+1)%fondos.length;
+}
+cambiarFondo();
+setInterval(cambiarFondo,6000);
+
+// ===== VARIABLES MAPA =====
+let map;
+let userMarker;
+let hotelMarkers=[];
+
+// ===== FUNCIÓN PRINCIPAL =====
+async function buscar(){
+
+const origen=document.getElementById("origen").value;
+const destino=document.getElementById("destino").value;
+const pasajeros=parseInt(document.getElementById("pasajeros").value);
+const salida=new Date(document.getElementById("salida").value);
+const llegada=new Date(document.getElementById("llegada").value);
+
+if(!destino){alert("Introduce destino");return;}
+
+document.getElementById("map").style.display="block";
+
+// Geocodificar destino
+const res=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${destino}`);
+const data=await res.json();
+if(data.length===0){alert("Destino no encontrado");return;}
+
+const lat=data[0].lat;
+const lon=data[0].lon;
+
+if(map){map.remove();}
+map=L.map('map').setView([lat,lon],13);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+attribution:'© OpenStreetMap'
+}).addTo(map);
+
+L.marker([lat,lon]).addTo(map).bindPopup(destino).openPopup();
+
+// Generar hoteles alrededor
+generarHotelesMapa(lat,lon,pasajeros,destino);
+
+// Dibujar ruta si hay origen
+if(origen){
+const resOrigen=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${origen}`);
+const dataOrigen=await resOrigen.json();
+if(dataOrigen.length>0){
+const latO=dataOrigen[0].lat;
+const lonO=dataOrigen[0].lon;
+
+L.marker([latO,lonO]).addTo(map).bindPopup("Origen");
+
+L.polyline([[latO,lonO],[lat,lon]],{color:'blue'}).addTo(map);
+}
+}
+
+// Generar itinerario
+generarItinerario(salida,llegada,destino);
+
+}
+
+// ===== HOTELES EN MAPA =====
+function generarHotelesMapa(lat,lon,pasajeros,destino){
+
+hotelMarkers.forEach(m=>map.removeLayer(m));
+hotelMarkers=[];
+
+const resultados=document.getElementById("resultados");
+resultados.innerHTML="";
+
+for(let i=0;i<5;i++){
+
+const latRandom=parseFloat(lat)+(Math.random()-0.5)/100;
+const lonRandom=parseFloat(lon)+(Math.random()-0.5)/100;
+const precio=Math.floor(Math.random()*150)+80;
+
+const marker=L.marker([latRandom,lonRandom]).addTo(map)
+.bindPopup(`Hotel ${destino} ${i+1}`);
+
+hotelMarkers.push(marker);
+
+resultados.innerHTML+=`
+<div class="card">
+<h3>Hotel ${destino} ${i+1}</h3>
+<p class="price">${precio*pasajeros}€ total</p>
+</div>
+`;
+}
+}
+
+// ===== GEOLOCALIZACIÓN =====
+function activarUbicacion(){
+if(navigator.geolocation){
+navigator.geolocation.getCurrentPosition(pos=>{
+const lat=pos.coords.latitude;
+const lon=pos.coords.longitude;
+document.getElementById("map").style.display="block";
+if(map){map.remove();}
+map=L.map('map').setView([lat,lon],13);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+attribution:'© OpenStreetMap'
+}).addTo(map);
+
+userMarker=L.marker([lat,lon]).addTo(map).bindPopup("Tu ubicación").openPopup();
+});
+}
+}
+
+// ===== ITINERARIO AUTOMÁTICO =====
+function generarItinerario(salida,llegada,destino){
+
+if(!salida || !llegada) return;
+
+const dias=(llegada-salida)/(1000*60*60*24);
+const cont=document.getElementById("itinerario");
+cont.innerHTML="<h3>Itinerario:</h3>";
+
+for(let i=0;i<=dias;i++){
+cont.innerHTML+=`
+<div class="itinerario">
+Día ${i+1} en ${destino}: Actividades recomendadas y visita turística.
+</div>
+`;
+}
+}
+
+</script>
+
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Easy Travel</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Poppins,sans-serif}
+
+body{
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background-size:cover;
+  background-position:center;
+  transition:background-image 1s ease-in-out;
+}
+
+.app{
+  width:95%;
+  max-width:420px;
+  background:rgba(0,0,0,0.75);
+  backdrop-filter:blur(12px);
+  border-radius:25px;
+  padding:20px;
+  color:#fff;
+}
+
+h1{text-align:center;margin-bottom:15px;font-weight:700}
+
+.form-group{margin-bottom:10px}
+
+input{
+  width:100%;
+  padding:10px;
+  border:none;
+  border-radius:12px;
+}
+
+button{
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  border:none;
+  border-radius:15px;
+  font-weight:600;
+  cursor:pointer;
+  background:#fff;
+}
+
+.resultados{margin-top:15px}
+
+.card{
+  background:rgba(255,255,255,0.1);
+  padding:12px;
+  border-radius:15px;
+  margin-bottom:12px;
+}
+
+.card img{
+  width:100%;
+  height:150px;
+  object-fit:cover;
+  border-radius:12px;
+  margin-bottom:8px;
+}
+
+.price{font-weight:700;color:#4cff4c}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <h1>Easy Travel</h1>
+
+  <div class="form-group">
+    <input type="text" id="origen" placeholder="Ciudad de salida">
+  </div>
+
+  <div class="form-group">
+    <input type="text" id="destino" placeholder="Destino">
+  </div>
+
+  <div class="form-group">
+    <input type="date" id="fechaSalida">
+  </div>
+
+  <div class="form-group">
+    <input type="date" id="fechaLlegada">
+  </div>
+
+  <div class="form-group">
+    <input type="number" id="pasajeros" placeholder="Pasajeros" min="1" value="1">
+  </div>
+
+  <button onclick="buscar()">Buscar Viaje</button>
+
+  <div class="resultados" id="resultados"></div>
+</div>
+
+<script>
+
+// ===== FONDOS DINÁMICOS =====
+const fondos = [
+"https://images.unsplash.com/photo-1502602898657-3e91760cbb34",
+"https://images.unsplash.com/photo-1499856871958-5b9627545d1a",
+"https://images.unsplash.com/photo-1505761671935-60b3a7427bad",
+"https://images.unsplash.com/photo-1534438327276-14e5300c3a48"
+];
+
+let fondoIndex=0;
+function cambiarFondo(){
+  document.body.style.backgroundImage=`url(${fondos[fondoIndex]})`;
+  fondoIndex=(fondoIndex+1)%fondos.length;
+}
+cambiarFondo();
+setInterval(cambiarFondo,6000);
+
+// ===== GENERADOR DINÁMICO DE HOTELES =====
+function generarHoteles(destino, pasajeros){
+
+  const nombresBase = [
+    "Grand Palace",
+    "Royal Suites",
+    "City Center Hotel",
+    "Luxury Resort",
+    "Urban Boutique",
+    "Skyline Hotel",
+    "Premium Stay",
+    "Golden View"
+  ];
+
+  const imagenes = [
+    "https://images.unsplash.com/photo-1566073771259-6a8506099945",
+    "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b",
+    "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa",
+    "https://images.unsplash.com/photo-1445019980597-93fa8acb246c"
+  ];
+
+  let hoteles=[];
+
+  for(let i=0;i<6;i++){
+    const nombre = `${nombresBase[Math.floor(Math.random()*nombresBase.length)]} ${destino}`;
+    const precioBase = Math.floor(Math.random()*150)+80;
+
+    hoteles.push({
+      nombre:nombre,
+      precio:precioBase*pasajeros,
+      imagen:imagenes[Math.floor(Math.random()*imagenes.length)],
+      descripcion:`Hotel en ${destino} con excelente ubicación y servicios premium.`
+    });
+  }
+
+  return hoteles;
+}
+
+// ===== FUNCIÓN BUSCAR =====
+function buscar(){
+
+  const destino=document.getElementById("destino").value.trim();
+  const pasajeros=parseInt(document.getElementById("pasajeros").value);
+
+  if(!destino){
+    alert("Introduce un destino");
+    return;
+  }
+
+  const hoteles = generarHoteles(destino, pasajeros);
+  mostrarHoteles(hoteles);
+}
+
+// ===== MOSTRAR RESULTADOS =====
+function mostrarHoteles(lista){
+
+  const cont=document.getElementById("resultados");
+  cont.innerHTML="";
+
+  lista.forEach(hotel=>{
+    cont.innerHTML+=`
+      <div class="card">
+        <img src="${hotel.imagen}">
+        <h3>${hotel.nombre}</h3>
+        <p>${hotel.descripcion}</p>
+        <p class="price">${hotel.precio}€ total</p>
+      </div>
+    `;
+  });
+}
+
+</script>
+
+</body>
+</html>
 
