@@ -2,224 +2,281 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Easy Travel PRO</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<title>Easy Travel</title>
 
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:Poppins,sans-serif}
 body{
-  min-height:100vh;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  background-size:cover;
-  background-position:center;
-  transition:1s;
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:#f2f4f8;
 }
-.app{
-  width:95%;
-  max-width:430px;
-  background:rgba(0,0,0,0.85);
-  backdrop-filter:blur(12px);
-  border-radius:25px;
+
+header{
+  background:black;
+  color:white;
   padding:20px;
-  color:#fff;
+  text-align:center;
+  font-size:24px;
 }
-h1{text-align:center;margin-bottom:15px}
-input{
-  width:100%;
+
+.section{
+  padding:40px;
+}
+
+form{
+  display:grid;
+  gap:15px;
+  max-width:400px;
+  margin:auto;
+}
+
+input, select, button{
   padding:10px;
-  border:none;
-  border-radius:12px;
-  margin-bottom:10px;
+  font-size:16px;
 }
+
 button{
-  width:100%;
-  padding:12px;
-  margin-bottom:10px;
-  border:none;
-  border-radius:15px;
-  font-weight:600;
+  background:black;
+  color:white;
   cursor:pointer;
+  border:none;
 }
-#map{height:300px;margin-top:10px;border-radius:15px;display:none}
-.card{
-  background:rgba(255,255,255,0.1);
-  padding:12px;
-  border-radius:15px;
+
+button:hover{
+  opacity:0.8;
+}
+
+#resultados{
+  display:none;
+}
+
+.filtros{
+  display:flex;
+  gap:15px;
+  flex-wrap:wrap;
+  margin-bottom:30px;
+}
+
+.hotel-card{
+  background:white;
+  padding:20px;
+  margin:20px auto;
+  max-width:900px;
+  display:flex;
+  gap:20px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.1);
+  border-radius:8px;
+}
+
+.hotel-card img{
+  width:250px;
+  height:170px;
+  object-fit:cover;
+  border-radius:6px;
+}
+
+.hotel-info{
+  flex:1;
+}
+
+.precio{
+  font-size:20px;
+  font-weight:bold;
   margin-top:10px;
 }
-.price{color:#4cff4c;font-weight:700}
-.itinerario{
-  background:rgba(255,255,255,0.08);
-  padding:10px;
-  border-radius:15px;
-  margin-top:10px;
+
+.estrella{
+  color:gold;
+}
+
+.actividades{
+  background:white;
+  padding:20px;
+  margin:40px auto;
+  max-width:900px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.1);
+  border-radius:8px;
+}
+
+.actividad{
+  border-bottom:1px solid #ddd;
+  padding:10px 0;
+}
+
+.volver{
+  margin-bottom:20px;
 }
 </style>
 </head>
+
 <body>
 
-<div class="app">
-<h1>Easy Travel PRO</h1>
+<header>Easy Travel</header>
 
-<input type="text" id="origen" placeholder="Ciudad de salida">
-<input type="text" id="destino" placeholder="Destino">
-<input type="date" id="salida">
-<input type="date" id="llegada">
-<input type="number" id="pasajeros" value="1" min="1">
-
-<button onclick="buscar()">Buscar Viaje</button>
-<button onclick="activarUbicacion()">Usar mi ubicación</button>
-
-<div id="map"></div>
-<div id="resultados"></div>
-<div id="itinerario"></div>
-
+<!-- PANTALLA 1 -->
+<div id="busqueda" class="section">
+<form id="formulario">
+<input type="text" id="destino" placeholder="Destino" required>
+<input type="date" required>
+<input type="date" required>
+<input type="number" placeholder="Pasajeros" required>
+<button type="submit">Buscar</button>
+</form>
 </div>
 
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<!-- PANTALLA 2 -->
+<div id="resultados" class="section">
+
+<button class="volver" onclick="volver()">← Nueva búsqueda</button>
+
+<div class="filtros">
+<select id="filtroPrecio">
+<option value="0">Precio máximo</option>
+<option value="100">Hasta 100€</option>
+<option value="150">Hasta 150€</option>
+<option value="250">Hasta 250€</option>
+</select>
+
+<select id="filtroEstrellas">
+<option value="0">Estrellas</option>
+<option value="3">3+</option>
+<option value="4">4+</option>
+<option value="5">5</option>
+</select>
+
+<select id="filtroPuntuacion">
+<option value="0">Puntuación</option>
+<option value="7">7+</option>
+<option value="8">8+</option>
+<option value="9">9+</option>
+</select>
+
+<button onclick="aplicarFiltros()">Aplicar filtros</button>
+</div>
+
+<div id="listaHoteles"></div>
+
+<div id="itinerario" class="actividades"></div>
+
+</div>
 
 <script>
 
-// ===== FONDO DINÁMICO =====
-const fondos=[
-"https://images.unsplash.com/photo-1502602898657-3e91760cbb34",
-"https://images.unsplash.com/photo-1499856871958-5b9627545d1a",
-"https://images.unsplash.com/photo-1505761671935-60b3a7427bad"
+let hotelesBase = [
+{
+nombre:"Grand Palace",
+precio:120,
+estrellas:4,
+puntuacion:8.5,
+imagen:"https://images.unsplash.com/photo-1566073771259-6a8506099945",
+descripcion:"Hotel céntrico con desayuno incluido."
+},
+{
+nombre:"City Urban Hotel",
+precio:90,
+estrellas:3,
+puntuacion:7.8,
+imagen:"https://images.unsplash.com/photo-1551776235-dde6d4829808",
+descripcion:"Habitaciones modernas cerca del centro."
+},
+{
+nombre:"Luxury Royal Resort",
+precio:210,
+estrellas:5,
+puntuacion:9.2,
+imagen:"https://images.unsplash.com/photo-1582719478250-c89cae4dc85b",
+descripcion:"Experiencia 5 estrellas con spa y piscina."
+}
 ];
-let fondoIndex=0;
-function cambiarFondo(){
- document.body.style.backgroundImage=`url(${fondos[fondoIndex]})`;
- fondoIndex=(fondoIndex+1)%fondos.length;
-}
-cambiarFondo();
-setInterval(cambiarFondo,6000);
 
-// ===== VARIABLES MAPA =====
-let map;
-let userMarker;
-let hotelMarkers=[];
+let destinoGlobal = "";
 
-// ===== FUNCIÓN PRINCIPAL =====
-async function buscar(){
+document.getElementById("formulario").addEventListener("submit",function(e){
+e.preventDefault();
 
-const origen=document.getElementById("origen").value;
-const destino=document.getElementById("destino").value;
-const pasajeros=parseInt(document.getElementById("pasajeros").value);
-const salida=new Date(document.getElementById("salida").value);
-const llegada=new Date(document.getElementById("llegada").value);
+destinoGlobal = document.getElementById("destino").value;
 
-if(!destino){alert("Introduce destino");return;}
+document.getElementById("busqueda").style.display="none";
+document.getElementById("resultados").style.display="block";
 
-document.getElementById("map").style.display="block";
+mostrarHoteles(hotelesBase);
+generarItinerario(destinoGlobal);
+});
 
-// Geocodificar destino
-const res=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${destino}`);
-const data=await res.json();
-if(data.length===0){alert("Destino no encontrado");return;}
+function mostrarHoteles(lista){
+let contenedor = document.getElementById("listaHoteles");
+contenedor.innerHTML="";
 
-const lat=data[0].lat;
-const lon=data[0].lon;
-
-if(map){map.remove();}
-map=L.map('map').setView([lat,lon],13);
-
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-attribution:'© OpenStreetMap'
-}).addTo(map);
-
-L.marker([lat,lon]).addTo(map).bindPopup(destino).openPopup();
-
-// Generar hoteles alrededor
-generarHotelesMapa(lat,lon,pasajeros,destino);
-
-// Dibujar ruta si hay origen
-if(origen){
-const resOrigen=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${origen}`);
-const dataOrigen=await resOrigen.json();
-if(dataOrigen.length>0){
-const latO=dataOrigen[0].lat;
-const lonO=dataOrigen[0].lon;
-
-L.marker([latO,lonO]).addTo(map).bindPopup("Origen");
-
-L.polyline([[latO,lonO],[lat,lon]],{color:'blue'}).addTo(map);
-}
+if(lista.length === 0){
+contenedor.innerHTML="<p>No se encontraron hoteles con esos filtros.</p>";
+return;
 }
 
-// Generar itinerario
-generarItinerario(salida,llegada,destino);
+lista.forEach(hotel=>{
 
-}
-
-// ===== HOTELES EN MAPA =====
-function generarHotelesMapa(lat,lon,pasajeros,destino){
-
-hotelMarkers.forEach(m=>map.removeLayer(m));
-hotelMarkers=[];
-
-const resultados=document.getElementById("resultados");
-resultados.innerHTML="";
-
-for(let i=0;i<5;i++){
-
-const latRandom=parseFloat(lat)+(Math.random()-0.5)/100;
-const lonRandom=parseFloat(lon)+(Math.random()-0.5)/100;
-const precio=Math.floor(Math.random()*150)+80;
-
-const marker=L.marker([latRandom,lonRandom]).addTo(map)
-.bindPopup(`Hotel ${destino} ${i+1}`);
-
-hotelMarkers.push(marker);
-
-resultados.innerHTML+=`
-<div class="card">
-<h3>Hotel ${destino} ${i+1}</h3>
-<p class="price">${precio*pasajeros}€ total</p>
+contenedor.innerHTML += `
+<div class="hotel-card">
+<img src="${hotel.imagen}">
+<div class="hotel-info">
+<h2>${hotel.nombre} - ${destinoGlobal}</h2>
+<p>${hotel.descripcion}</p>
+<p class="estrella">${"★".repeat(hotel.estrellas)}</p>
+<p>Puntuación: ${hotel.puntuacion}</p>
+<p class="precio">${hotel.precio} € / noche</p>
+<button>Reservar</button>
+</div>
 </div>
 `;
-}
-}
-
-// ===== GEOLOCALIZACIÓN =====
-function activarUbicacion(){
-if(navigator.geolocation){
-navigator.geolocation.getCurrentPosition(pos=>{
-const lat=pos.coords.latitude;
-const lon=pos.coords.longitude;
-document.getElementById("map").style.display="block";
-if(map){map.remove();}
-map=L.map('map').setView([lat,lon],13);
-
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-attribution:'© OpenStreetMap'
-}).addTo(map);
-
-userMarker=L.marker([lat,lon]).addTo(map).bindPopup("Tu ubicación").openPopup();
 });
 }
+
+function aplicarFiltros(){
+let precioMax = document.getElementById("filtroPrecio").value;
+let estrellasMin = document.getElementById("filtroEstrellas").value;
+let puntuacionMin = document.getElementById("filtroPuntuacion").value;
+
+let filtrados = hotelesBase.filter(hotel=>{
+return (precioMax==0 || hotel.precio<=precioMax)
+&& (estrellasMin==0 || hotel.estrellas>=estrellasMin)
+&& (puntuacionMin==0 || hotel.puntuacion>=puntuacionMin);
+});
+
+mostrarHoteles(filtrados);
 }
 
-// ===== ITINERARIO AUTOMÁTICO =====
-function generarItinerario(salida,llegada,destino){
+function generarItinerario(destino){
 
-if(!salida || !llegada) return;
+let itinerario = document.getElementById("itinerario");
 
-const dias=(llegada-salida)/(1000*60*60*24);
-const cont=document.getElementById("itinerario");
-cont.innerHTML="<h3>Itinerario:</h3>";
+itinerario.innerHTML = `
+<h2>Itinerario recomendado en ${destino}</h2>
 
-for(let i=0;i<=dias;i++){
-cont.innerHTML+=`
-<div class="itinerario">
-Día ${i+1} en ${destino}: Actividades recomendadas y visita turística.
+<div class="actividad">
+<strong>Día 1</strong><br>
+09:00 - Tour guiado por el centro histórico<br>
+13:00 - Almuerzo gastronómico local<br>
+17:00 - Museo principal
+</div>
+
+<div class="actividad">
+<strong>Día 2</strong><br>
+08:30 - Excursión panorámica<br>
+14:00 - Ruta cultural<br>
+20:00 - Cena con espectáculo tradicional
+</div>
+
+<div class="actividad">
+<strong>Día 3</strong><br>
+10:00 - Actividad al aire libre<br>
+16:00 - Tiempo libre<br>
+21:00 - Evento nocturno
 </div>
 `;
 }
+
+function volver(){
+document.getElementById("resultados").style.display="none";
+document.getElementById("busqueda").style.display="block";
 }
 
 </script>
