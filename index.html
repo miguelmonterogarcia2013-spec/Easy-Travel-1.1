@@ -8,7 +8,7 @@
 body{
   margin:0;
   font-family:Arial, sans-serif;
-  background:#f2f4f8;
+  background:#f3f5f9;
 }
 
 header{
@@ -38,15 +38,15 @@ input, select, button{
 button{
   background:black;
   color:white;
-  cursor:pointer;
   border:none;
+  cursor:pointer;
 }
 
 button:hover{
   opacity:0.8;
 }
 
-#resultados{
+#pantallaResultados{
   display:none;
 }
 
@@ -61,7 +61,7 @@ button:hover{
   background:white;
   padding:20px;
   margin:20px auto;
-  max-width:900px;
+  max-width:850px;
   display:flex;
   gap:20px;
   box-shadow:0 4px 10px rgba(0,0,0,0.1);
@@ -89,22 +89,18 @@ button:hover{
   color:gold;
 }
 
-.actividades{
+.itinerario{
   background:white;
   padding:20px;
   margin:40px auto;
-  max-width:900px;
+  max-width:850px;
   box-shadow:0 4px 10px rgba(0,0,0,0.1);
   border-radius:8px;
 }
 
 .actividad{
-  border-bottom:1px solid #ddd;
   padding:10px 0;
-}
-
-.volver{
-  margin-bottom:20px;
+  border-bottom:1px solid #ddd;
 }
 </style>
 </head>
@@ -113,9 +109,9 @@ button:hover{
 
 <header>Easy Travel</header>
 
-<!-- PANTALLA 1 -->
-<div id="busqueda" class="section">
-<form id="formulario">
+<!-- PANTALLA BUSQUEDA -->
+<div id="pantallaBusqueda" class="section">
+<form id="formBusqueda">
 <input type="text" id="destino" placeholder="Destino" required>
 <input type="date" required>
 <input type="date" required>
@@ -124,10 +120,10 @@ button:hover{
 </form>
 </div>
 
-<!-- PANTALLA 2 -->
-<div id="resultados" class="section">
+<!-- PANTALLA RESULTADOS -->
+<div id="pantallaResultados" class="section">
 
-<button class="volver" onclick="volver()">← Nueva búsqueda</button>
+<button onclick="volver()">← Nueva búsqueda</button>
 
 <div class="filtros">
 <select id="filtroPrecio">
@@ -154,15 +150,16 @@ button:hover{
 <button onclick="aplicarFiltros()">Aplicar filtros</button>
 </div>
 
-<div id="listaHoteles"></div>
+<div id="contenedorHoteles"></div>
 
-<div id="itinerario" class="actividades"></div>
+<div id="contenedorItinerario"></div>
 
 </div>
 
 <script>
 
-let hotelesBase = [
+// BASE LIMPIA
+const hotelesBase = [
 {
 nombre:"Grand Palace",
 precio:120,
@@ -185,37 +182,42 @@ precio:210,
 estrellas:5,
 puntuacion:9.2,
 imagen:"https://images.unsplash.com/photo-1582719478250-c89cae4dc85b",
-descripcion:"Experiencia 5 estrellas con spa y piscina."
+descripcion:"Resort 5 estrellas con spa y piscina."
 }
 ];
 
 let destinoGlobal = "";
 
-document.getElementById("formulario").addEventListener("submit",function(e){
+// BUSQUEDA
+document.getElementById("formBusqueda").addEventListener("submit", function(e){
 e.preventDefault();
 
 destinoGlobal = document.getElementById("destino").value;
 
-document.getElementById("busqueda").style.display="none";
-document.getElementById("resultados").style.display="block";
+document.getElementById("pantallaBusqueda").style.display="none";
+document.getElementById("pantallaResultados").style.display="block";
 
 mostrarHoteles(hotelesBase);
 generarItinerario(destinoGlobal);
 });
 
+// MOSTRAR HOTELES
 function mostrarHoteles(lista){
-let contenedor = document.getElementById("listaHoteles");
-contenedor.innerHTML="";
+
+const contenedor = document.getElementById("contenedorHoteles");
+contenedor.innerHTML = "";
 
 if(lista.length === 0){
-contenedor.innerHTML="<p>No se encontraron hoteles con esos filtros.</p>";
+contenedor.innerHTML = "<p>No se encontraron hoteles.</p>";
 return;
 }
 
-lista.forEach(hotel=>{
+lista.forEach(hotel => {
 
-contenedor.innerHTML += `
-<div class="hotel-card">
+const card = document.createElement("div");
+card.className = "hotel-card";
+
+card.innerHTML = `
 <img src="${hotel.imagen}">
 <div class="hotel-info">
 <h2>${hotel.nombre} - ${destinoGlobal}</h2>
@@ -225,17 +227,21 @@ contenedor.innerHTML += `
 <p class="precio">${hotel.precio} € / noche</p>
 <button>Reservar</button>
 </div>
-</div>
 `;
+
+contenedor.appendChild(card);
+
 });
 }
 
+// FILTROS
 function aplicarFiltros(){
-let precioMax = document.getElementById("filtroPrecio").value;
-let estrellasMin = document.getElementById("filtroEstrellas").value;
-let puntuacionMin = document.getElementById("filtroPuntuacion").value;
 
-let filtrados = hotelesBase.filter(hotel=>{
+const precioMax = document.getElementById("filtroPrecio").value;
+const estrellasMin = document.getElementById("filtroEstrellas").value;
+const puntuacionMin = document.getElementById("filtroPuntuacion").value;
+
+const filtrados = hotelesBase.filter(hotel => {
 return (precioMax==0 || hotel.precio<=precioMax)
 && (estrellasMin==0 || hotel.estrellas>=estrellasMin)
 && (puntuacionMin==0 || hotel.puntuacion>=puntuacionMin);
@@ -244,17 +250,19 @@ return (precioMax==0 || hotel.precio<=precioMax)
 mostrarHoteles(filtrados);
 }
 
+// ITINERARIO
 function generarItinerario(destino){
 
-let itinerario = document.getElementById("itinerario");
+const contenedor = document.getElementById("contenedorItinerario");
 
-itinerario.innerHTML = `
+contenedor.innerHTML = `
+<div class="itinerario">
 <h2>Itinerario recomendado en ${destino}</h2>
 
 <div class="actividad">
 <strong>Día 1</strong><br>
-09:00 - Tour guiado por el centro histórico<br>
-13:00 - Almuerzo gastronómico local<br>
+09:00 - Tour guiado<br>
+13:00 - Almuerzo local<br>
 17:00 - Museo principal
 </div>
 
@@ -262,7 +270,7 @@ itinerario.innerHTML = `
 <strong>Día 2</strong><br>
 08:30 - Excursión panorámica<br>
 14:00 - Ruta cultural<br>
-20:00 - Cena con espectáculo tradicional
+20:00 - Cena tradicional
 </div>
 
 <div class="actividad">
@@ -271,12 +279,15 @@ itinerario.innerHTML = `
 16:00 - Tiempo libre<br>
 21:00 - Evento nocturno
 </div>
+
+</div>
 `;
 }
 
+// VOLVER
 function volver(){
-document.getElementById("resultados").style.display="none";
-document.getElementById("busqueda").style.display="block";
+document.getElementById("pantallaResultados").style.display="none";
+document.getElementById("pantallaBusqueda").style.display="block";
 }
 
 </script>
@@ -478,4 +489,3 @@ function mostrarHoteles(lista){
 
 </body>
 </html>
-
