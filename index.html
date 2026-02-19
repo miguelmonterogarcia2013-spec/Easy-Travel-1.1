@@ -3,48 +3,40 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Easy Travel Planner</title>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<title>Easy Travel Planner (Estimación Realística)</title>
 
 <style>
-body{margin:0;font-family:Arial;background:#f4f6fa}
-header{background:black;color:white;padding:15px;text-align:center;font-size:22px}
-.container{max-width:800px;margin:auto;padding:20px}
-input,select,button{width:100%;padding:10px;margin:8px 0;font-size:15px}
-button{background:black;color:white;border:none;cursor:pointer}
-.card{background:white;padding:15px;margin-top:20px;border-radius:6px;box-shadow:0 4px 8px rgba(0,0,0,0.1)}
-.total{font-size:20px;font-weight:bold;margin-top:10px}
-.section-title{font-size:18px;font-weight:bold;margin-top:20px}
+body{margin:0;font-family:Arial,sans-serif;background:#f4f4f8}
+header{background:#0d47a1;color:white;padding:15px;text-align:center;font-size:24px}
+.container{max-width:900px;margin:auto;padding:20px}
+input,select,button{width:100%;padding:10px;margin:8px 0;font-size:16px;border-radius:6px;border:1px solid #ccc}
+button{background:#0d47a1;color:white;border:none;cursor:pointer}
+button:hover{opacity:0.9}
+.card{background:white;padding:15px;margin-top:20px;border-radius:8px;box-shadow:0 4px 10px rgba(0,0,0,0.1)}
+.section-title{font-size:18px;font-weight:bold;margin-top:12px}
 .hidden{display:none}
-.back-btn{background:#555;margin-top:20px}
 </style>
 </head>
 
 <body>
 
-<header>Easy Travel Planner</header>
+<header>Easy Travel Planner — Estimación Real</header>
 
 <!-- PANTALLA 1 -->
 <div class="container" id="pantalla1">
 
-<h3>Planifica tu viaje</h3>
+<h3>📍 Planifica tu viaje</h3>
 
-<input type="text" id="destino" placeholder="Destino (ej: Roma, Tokio, Buenos Aires)">
+<input type="text" id="origen" placeholder="Desde dónde sales (ciudad)">
+<input type="text" id="destino" placeholder="Destino (ciudad)">
+<input type="date" id="fechaSalida">
 <input type="number" id="dias" placeholder="Número de días">
 <input type="number" id="personas" placeholder="Número de pasajeros">
 
-<select id="tipo">
-<option value="romantico">Romántico</option>
-<option value="aventura">Aventura</option>
-<option value="familiar">Familiar</option>
-<option value="cultural">Cultural</option>
-</select>
-
 <select id="presupuesto">
-<option value="bajo">Presupuesto Bajo</option>
-<option value="medio">Presupuesto Medio</option>
-<option value="alto">Presupuesto Alto</option>
+<option value="bajo">💰 Bajo</option>
+<option value="medio">💸 Medio</option>
+<option value="alto">💎 Alto</option>
 </select>
 
 <button onclick="generarViaje()">Generar Plan</button>
@@ -54,123 +46,206 @@ button{background:black;color:white;border:none;cursor:pointer}
 <!-- PANTALLA 2 -->
 <div class="container hidden" id="pantalla2">
 
-<h2 id="tituloDestino"></h2>
+<h2 id="tituloViaje"></h2>
 <div id="contenidoResultado"></div>
 
-<button class="back-btn" onclick="volver()">← Volver</button>
-<button onclick="exportarPDF()">Exportar PDF</button>
+<button onclick="volver()">← Volver</button>
 
 </div>
 
 <script>
 
-// ACTIVIDADES CONCRETAS UNIVERSALES
-const actividadesDetalladas = {
-romantico:[
-{mañana:"Desayuno local con vistas", tarde:"Tour histórico privado", noche:"Cena gourmet romántica"},
-{mañana:"Museo emblemático", tarde:"Paseo por el casco antiguo", noche:"Mirador al atardecer"}
+// ============ BASE DE ACTIVIDADES POR CIUDAD ============
+
+const actividadesReales = {
+
+españa:{
+madrid:[
+{mañana:"Visita al Museo del Prado",tarde:"Palacio Real",noche:"Tapas por La Latina"},
+{mañana:"Parque del Retiro",tarde:"Plaza Mayor",noche:"Espectáculo de flamenco"}
 ],
-aventura:[
-{mañana:"Ruta de senderismo", tarde:"Actividad deportiva guiada", noche:"Exploración urbana nocturna"},
-{mañana:"Excursión natural", tarde:"Actividad acuática", noche:"Cena informal local"}
-],
-familiar:[
-{mañana:"Parque recreativo", tarde:"Actividad cultural interactiva", noche:"Espectáculo familiar"},
-{mañana:"Museo interactivo", tarde:"Zona natural adaptada", noche:"Cena familiar"}
-],
-cultural:[
-{mañana:"Visita a monumento principal", tarde:"Museo o galería histórica", noche:"Evento cultural local"},
-{mañana:"Centro histórico guiado", tarde:"Mercado tradicional", noche:"Teatro o espectáculo típico"}
+barcelona:[
+{mañana:"Sagrada Familia",tarde:"Park Güell",noche:"Cena frente al mar"},
+{mañana:"La Rambla",tarde:"Barrio Gótico",noche:"Cena mediterránea"}
 ]
+},
+
+italia:{
+roma:[
+{mañana:"Visita al Coliseo",tarde:"Vaticano y Capilla Sixtina",noche:"Paseo por Trastevere"},
+{mañana:"Foro Romano",tarde:"Plaza de España",noche:"Cena italiana"}
+],
+milán:[
+{mañana:"Catedral de Milán",tarde:"Galleria Vittorio Emanuele II",noche:"Navigli"}
+]
+},
+
+francia:{
+parís:[
+{mañana:"Subida a la Torre Eiffel",tarde:"Museo del Louvre",noche:"Crucero por el Sena"},
+{mañana:"Barrio de Montmartre",tarde:"Campos Elíseos",noche:"Cena con vistas"}
+]
+},
+
+estados_unidos:{
+"nueva york":[
+{mañana:"Estatua de la Libertad",tarde:"Central Park",noche:"Times Square"},
+{mañana:"MET Museum",tarde:"Empire State",noche:"Broadway"}
+],
+miami:[
+{mañana:"South Beach",tarde:"Little Havana",noche:"Ocean Drive"}
+]
+},
+
+japon:{
+tokio:[
+{mañana:"Templo Senso-ji",tarde:"Shibuya Crossing",noche:"Shinjuku Food Tour"},
+{mañana:"Palacio Imperial",tarde:"Akihabara",noche:"Tokyo Skytree"}
+],
+kyoto:[
+{mañana:"Templo Fushimi Inari",tarde:"Bosque de Bambú",noche:"Cena tradicional"}
+]
+}
+
 };
+
+// ============ NORMALIZAR TEXTO ============
+
+function normalizar(text){
+return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
+}
+
+// ============ GENERAR PLAN ============
 
 function generarViaje(){
 
-let destino=document.getElementById("destino").value;
+let origen = document.getElementById("origen").value;
+let destinoOriginal = document.getElementById("destino").value;
+let destino = normalizar(destinoOriginal);
+
+let fechaSalida=document.getElementById("fechaSalida").value;
 let dias=parseInt(document.getElementById("dias").value);
 let personas=parseInt(document.getElementById("personas").value);
-let tipo=document.getElementById("tipo").value;
 let presupuesto=document.getElementById("presupuesto").value;
 
-if(!destino || !dias || !personas){
-alert("Completa todos los campos");
+if(!origen||!destino||!fechaSalida||!dias||!personas){
+alert("Por favor completa todos los campos.");
 return;
 }
 
-// COSTES
-let hotel, comida, actividadesCoste, transporte;
+// ===== COSTOS ESTIMADOS =====
+
+let hotel, comida, actCost, transporte;
 
 if(presupuesto==="bajo"){
-hotel=60; comida=25; actividadesCoste=20; transporte=15;
+hotel=65; comida=30; actCost=25; transporte=20;
 }else if(presupuesto==="medio"){
-hotel=120; comida=45; actividadesCoste=35; transporte=25;
+hotel=130; comida=50; actCost=45; transporte=30;
 }else{
-hotel=250; comida=80; actividadesCoste=60; transporte=40;
+hotel=260; comida=80; actCost=70; transporte=45;
 }
 
-let alojamientoTotal=hotel*dias;
-let comidaTotal=comida*dias;
-let actividadesTotal=actividadesCoste*dias;
-let transporteTotal=transporte*dias;
+// Vuelo estimado según origen — muy aproximado
+let vueloBase=200;
 
-let totalPersona=alojamientoTotal+comidaTotal+actividadesTotal+transporteTotal;
-let totalViaje=totalPersona*personas;
+if(normalizar(origen).includes("america")){
+vueloBase=650;
+}
+if(normalizar(origen).includes("asia")){
+vueloBase=800;
+}
+if(normalizar(origen).includes("oceania")){
+vueloBase=1000;
+}
+if(normalizar(origen).includes("africa")){
+vueloBase=900;
+}
 
-// ITINERARIO DETALLADO
-let itinerarioHTML="";
-let actividadesLista=actividadesDetalladas[tipo];
+let costeVuelo=vueloBase*personas;
+
+// Costes totales
+let totalHotel = hotel*dias*personas;
+let totalComida = comida*dias*personas;
+let totalActividades = actCost*dias*personas;
+let totalTransporte = transporte*dias*personas;
+
+let totalViaje = totalHotel + totalComida + totalActividades + totalTransporte + costeVuelo;
+
+// ===== ITINERARIO =====
+
+let itineraryHTML="";
+
+let encontrada=false;
+
+// Buscar actividades reales
+for(let pais in actividadesReales){
+if(actividadesReales[pais][destino]){
+encontrada=true;
+let lista=actividadesReales[pais][destino];
 
 for(let i=1;i<=dias;i++){
-
-let actividad=actividadesLista[(i-1)%actividadesLista.length];
-
-itinerarioHTML+=`
+let act = lista[(i-1)%lista.length];
+itineraryHTML += `
 <div class="card">
 <div class="section-title">Día ${i}</div>
-<p><strong>Mañana:</strong> ${actividad.mañana} en ${destino}</p>
-<p><strong>Tarde:</strong> ${actividad.tarde} en ${destino}</p>
-<p><strong>Noche:</strong> ${actividad.noche} en ${destino}</p>
+<p><strong>Mañana:</strong> ${act.mañana}</p>
+<p><strong>Tarde:</strong> ${act.tarde}</p>
+<p><strong>Noche:</strong> ${act.noche}</p>
 </div>
 `;
 }
+}
+}
 
-// MOSTRAR SEGUNDA PANTALLA
+// Si no hay ciudad en datos → itinerario genérico
+if(!encontrada){
+for(let i=1;i<=dias;i++){
+itineraryHTML += `
+<div class="card">
+<div class="section-title">Día ${i}</div>
+<p><strong>Mañana:</strong> Recorrido turístico por ${destinoOriginal}</p>
+<p><strong>Tarde:</strong> Visita cultural en ${destinoOriginal}</p>
+<p><strong>Noche:</strong> Cena típica local</p>
+</div>
+`;
+}
+}
+
+// ===== MOSTRAR RESULTADOS =====
+
 document.getElementById("pantalla1").classList.add("hidden");
 document.getElementById("pantalla2").classList.remove("hidden");
 
-document.getElementById("tituloDestino").innerHTML=
-`Viaje a ${destino} - ${dias} días`;
+document.getElementById("tituloViaje").innerHTML = 
+`✈️ Viaje de ${origen} → ${destinoOriginal} (${dias} días)`;
 
-document.getElementById("contenidoResultado").innerHTML=`
-${itinerarioHTML}
+document.getElementById("contenidoResultado").innerHTML = `
+
+${itineraryHTML}
 
 <div class="card">
-<h3>Resumen Económico</h3>
-<p>🏨 Alojamiento: €${alojamientoTotal}</p>
-<p>🍽 Comidas: €${comidaTotal}</p>
-<p>🎟 Actividades: €${actividadesTotal}</p>
-<p>🚕 Transporte: €${transporteTotal}</p>
-<p class="total">Total por persona: €${totalPersona}</p>
-<p class="total">Total del viaje (${personas} personas): €${totalViaje}</p>
+<h3>📊 Desglose de costes aproximados</h3>
+<p>✈️ Vuelo estimado total: €${costeVuelo}</p>
+<p>🏨 Hoteles: €${totalHotel}</p>
+<p>🍽 Comidas: €${totalComida}</p>
+<p>🎟 Actividades: €${totalActividades}</p>
+<p>🚕 Transporte interno: €${totalTransporte}</p>
+<p class="total">💵 TOTAL DEL VIAJE: €${totalViaje}</p>
 </div>
+
 `;
 
 }
+
+// ============ VOLVER ============
 
 function volver(){
 document.getElementById("pantalla2").classList.add("hidden");
 document.getElementById("pantalla1").classList.remove("hidden");
 }
 
-function exportarPDF(){
-const { jsPDF } = window.jspdf;
-const doc = new jsPDF();
-doc.text("Easy Travel - Propuesta de Viaje",20,20);
-doc.text("Consulta generada desde la aplicación.",20,30);
-doc.save("EasyTravel.pdf");
-}
-
 </script>
 
 </body>
 </html>
+
