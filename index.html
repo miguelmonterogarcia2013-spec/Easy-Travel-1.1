@@ -3,30 +3,34 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Easy Travel Agency</title>
+<title>Easy Travel Planner</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
 body{margin:0;font-family:Arial;background:#f4f6fa}
 header{background:black;color:white;padding:15px;text-align:center;font-size:22px}
-.container{max-width:700px;margin:auto;padding:20px}
+.container{max-width:800px;margin:auto;padding:20px}
 input,select,button{width:100%;padding:10px;margin:8px 0;font-size:15px}
 button{background:black;color:white;border:none;cursor:pointer}
 .card{background:white;padding:15px;margin-top:20px;border-radius:6px;box-shadow:0 4px 8px rgba(0,0,0,0.1)}
-.total{font-size:18px;font-weight:bold;margin-top:10px}
+.total{font-size:20px;font-weight:bold;margin-top:10px}
+.section-title{font-size:18px;font-weight:bold;margin-top:20px}
+.hidden{display:none}
+.back-btn{background:#555;margin-top:20px}
 </style>
 </head>
 
 <body>
 
-<header>Easy Travel Agency</header>
+<header>Easy Travel Planner</header>
 
-<div class="container">
+<!-- PANTALLA 1 -->
+<div class="container" id="pantalla1">
 
-<h3>Planificador Profesional de Viajes</h3>
+<h3>Planifica tu viaje</h3>
 
-<input type="text" id="destino" placeholder="Destino (cualquier ciudad del mundo)">
+<input type="text" id="destino" placeholder="Destino (ej: Roma, Tokio, Buenos Aires)">
 <input type="number" id="dias" placeholder="Número de días">
 <input type="number" id="personas" placeholder="Número de pasajeros">
 
@@ -43,62 +47,42 @@ button{background:black;color:white;border:none;cursor:pointer}
 <option value="alto">Presupuesto Alto</option>
 </select>
 
-<label>Margen de beneficio (%)</label>
-<input type="number" id="margen" value="20">
-
-<label>
-<input type="checkbox" id="modoAgencia">
- Mostrar datos internos de agencia
-</label>
-
 <button onclick="generarViaje()">Generar Plan</button>
-<button onclick="exportarPDF()">Exportar PDF Profesional</button>
 
-<div id="resultado"></div>
+</div>
+
+<!-- PANTALLA 2 -->
+<div class="container hidden" id="pantalla2">
+
+<h2 id="tituloDestino"></h2>
+<div id="contenidoResultado"></div>
+
+<button class="back-btn" onclick="volver()">← Volver</button>
+<button onclick="exportarPDF()">Exportar PDF</button>
 
 </div>
 
 <script>
 
-// ================= ACTIVIDADES UNIVERSALES =================
-
-const actividadesBase = {
-
+// ACTIVIDADES CONCRETAS UNIVERSALES
+const actividadesDetalladas = {
 romantico:[
-"Tour panorámico al atardecer",
-"Cena gourmet local",
-"Paseo histórico por el centro",
-"Mirador romántico con vistas",
-"Experiencia cultural exclusiva"
+{mañana:"Desayuno local con vistas", tarde:"Tour histórico privado", noche:"Cena gourmet romántica"},
+{mañana:"Museo emblemático", tarde:"Paseo por el casco antiguo", noche:"Mirador al atardecer"}
 ],
-
 aventura:[
-"Ruta de senderismo",
-"Excursión natural guiada",
-"Actividad deportiva local",
-"Exploración de zona montañosa",
-"Experiencia acuática o outdoor"
+{mañana:"Ruta de senderismo", tarde:"Actividad deportiva guiada", noche:"Exploración urbana nocturna"},
+{mañana:"Excursión natural", tarde:"Actividad acuática", noche:"Cena informal local"}
 ],
-
 familiar:[
-"Parque temático o recreativo",
-"Visita interactiva cultural",
-"Actividad educativa local",
-"Tour guiado familiar",
-"Espacio natural adaptado"
+{mañana:"Parque recreativo", tarde:"Actividad cultural interactiva", noche:"Espectáculo familiar"},
+{mañana:"Museo interactivo", tarde:"Zona natural adaptada", noche:"Cena familiar"}
 ],
-
 cultural:[
-"Museo principal de la ciudad",
-"Centro histórico guiado",
-"Monumento emblemático",
-"Mercado tradicional",
-"Evento cultural o espectáculo local"
+{mañana:"Visita a monumento principal", tarde:"Museo o galería histórica", noche:"Evento cultural local"},
+{mañana:"Centro histórico guiado", tarde:"Mercado tradicional", noche:"Teatro o espectáculo típico"}
 ]
-
 };
-
-// ================= GENERAR VIAJE =================
 
 function generarViaje(){
 
@@ -113,7 +97,7 @@ alert("Completa todos los campos");
 return;
 }
 
-// COSTES BASE
+// COSTES
 let hotel, comida, actividadesCoste, transporte;
 
 if(presupuesto==="bajo"){
@@ -132,31 +116,33 @@ let transporteTotal=transporte*dias;
 let totalPersona=alojamientoTotal+comidaTotal+actividadesTotal+transporteTotal;
 let totalViaje=totalPersona*personas;
 
-// MARGEN
-let margen=parseInt(document.getElementById("margen").value)/100;
-let beneficioTotal=totalViaje*margen;
-let precioFinalViaje=totalViaje+beneficioTotal;
-let precioFinalPersona=precioFinalViaje/personas;
-
-let mostrarInterno=document.getElementById("modoAgencia").checked;
-
-// GENERADOR UNIVERSAL
-let itinerario="";
-let actividadesLista=actividadesBase[tipo];
+// ITINERARIO DETALLADO
+let itinerarioHTML="";
+let actividadesLista=actividadesDetalladas[tipo];
 
 for(let i=1;i<=dias;i++){
+
 let actividad=actividadesLista[(i-1)%actividadesLista.length];
-itinerario+=`
-<p><strong>Día ${i}:</strong> ${actividad} en ${destino}.</p>
+
+itinerarioHTML+=`
+<div class="card">
+<div class="section-title">Día ${i}</div>
+<p><strong>Mañana:</strong> ${actividad.mañana} en ${destino}</p>
+<p><strong>Tarde:</strong> ${actividad.tarde} en ${destino}</p>
+<p><strong>Noche:</strong> ${actividad.noche} en ${destino}</p>
+</div>
 `;
 }
 
-// RESULTADO
-let resumen=`
-<div class="card">
-<h3>Itinerario en ${destino}</h3>
-${itinerario}
-</div>
+// MOSTRAR SEGUNDA PANTALLA
+document.getElementById("pantalla1").classList.add("hidden");
+document.getElementById("pantalla2").classList.remove("hidden");
+
+document.getElementById("tituloDestino").innerHTML=
+`Viaje a ${destino} - ${dias} días`;
+
+document.getElementById("contenidoResultado").innerHTML=`
+${itinerarioHTML}
 
 <div class="card">
 <h3>Resumen Económico</h3>
@@ -164,66 +150,24 @@ ${itinerario}
 <p>🍽 Comidas: €${comidaTotal}</p>
 <p>🎟 Actividades: €${actividadesTotal}</p>
 <p>🚕 Transporte: €${transporteTotal}</p>
-<p class="total">Precio final por persona: €${precioFinalPersona.toFixed(2)}</p>
-<p class="total">Precio final total (${personas} personas): €${precioFinalViaje.toFixed(2)}</p>
+<p class="total">Total por persona: €${totalPersona}</p>
+<p class="total">Total del viaje (${personas} personas): €${totalViaje}</p>
 </div>
 `;
 
-if(mostrarInterno){
-resumen+=`
-<div class="card" style="background:#fff3cd">
-<h4>Datos internos agencia</h4>
-<p>Coste real total: €${totalViaje.toFixed(2)}</p>
-<p>Beneficio estimado: €${beneficioTotal.toFixed(2)}</p>
-</div>
-`;
 }
 
-document.getElementById("resultado").innerHTML=resumen;
-
+function volver(){
+document.getElementById("pantalla2").classList.add("hidden");
+document.getElementById("pantalla1").classList.remove("hidden");
 }
-
-// ================= PDF PROFESIONAL =================
 
 function exportarPDF(){
-
 const { jsPDF } = window.jspdf;
 const doc = new jsPDF();
-
-let destino=document.getElementById("destino").value;
-let dias=document.getElementById("dias").value;
-let personas=document.getElementById("personas").value;
-let fecha=new Date().toLocaleDateString();
-let referencia="ET-"+Math.floor(Math.random()*100000);
-
-doc.setFillColor(0,0,0);
-doc.rect(0,0,210,60,"F");
-
-doc.setTextColor(255,255,255);
-doc.setFontSize(28);
-doc.text("Easy Travel Agency",20,35);
-
-doc.setFontSize(14);
-doc.text("Propuesta Personalizada",20,50);
-
-doc.setTextColor(0,0,0);
-doc.setFontSize(12);
-doc.text("Referencia: "+referencia,20,75);
-doc.text("Fecha: "+fecha,20,85);
-
-doc.addPage();
-doc.setFontSize(18);
-doc.text("Detalles del Viaje",20,20);
-doc.setFontSize(12);
-doc.text("Destino: "+destino,20,35);
-doc.text("Duración: "+dias+" días",20,45);
-doc.text("Pasajeros: "+personas,20,55);
-
-doc.addPage();
-doc.setFontSize(16);
-doc.text("Gracias por confiar en Easy Travel Agency",20,40);
-
-doc.save("EasyTravel_Propuesta.pdf");
+doc.text("Easy Travel - Propuesta de Viaje",20,20);
+doc.text("Consulta generada desde la aplicación.",20,30);
+doc.save("EasyTravel.pdf");
 }
 
 </script>
