@@ -2,487 +2,228 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Easy Travel</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Easy Travel Agency</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
-body{
-  margin:0;
-  font-family:Arial, sans-serif;
-  background:#f3f5f9;
-}
-
-header{
-  background:black;
-  color:white;
-  padding:20px;
-  text-align:center;
-  font-size:24px;
-}
-
-.section{
-  padding:40px;
-}
-
-form{
-  display:grid;
-  gap:15px;
-  max-width:400px;
-  margin:auto;
-}
-
-input, select, button{
-  padding:10px;
-  font-size:16px;
-}
-
-button{
-  background:black;
-  color:white;
-  border:none;
-  cursor:pointer;
-}
-
-button:hover{
-  opacity:0.8;
-}
-
-#pantallaResultados{
-  display:none;
-}
-
-.filtros{
-  display:flex;
-  gap:15px;
-  flex-wrap:wrap;
-  margin-bottom:30px;
-}
-
-.hotel-card{
-  background:white;
-  padding:20px;
-  margin:20px auto;
-  max-width:850px;
-  display:flex;
-  gap:20px;
-  box-shadow:0 4px 10px rgba(0,0,0,0.1);
-  border-radius:8px;
-}
-
-.hotel-card img{
-  width:250px;
-  height:170px;
-  object-fit:cover;
-  border-radius:6px;
-}
-
-.hotel-info{
-  flex:1;
-}
-
-.precio{
-  font-size:20px;
-  font-weight:bold;
-  margin-top:10px;
-}
-
-.estrella{
-  color:gold;
-}
-
-.itinerario{
-  background:white;
-  padding:20px;
-  margin:40px auto;
-  max-width:850px;
-  box-shadow:0 4px 10px rgba(0,0,0,0.1);
-  border-radius:8px;
-}
-
-.actividad{
-  padding:10px 0;
-  border-bottom:1px solid #ddd;
-}
+body{margin:0;font-family:Arial;background:#f4f6fa}
+header{background:black;color:white;padding:15px;text-align:center;font-size:22px}
+.container{max-width:700px;margin:auto;padding:20px}
+input,select,button{width:100%;padding:10px;margin:8px 0;font-size:15px}
+button{background:black;color:white;border:none;cursor:pointer}
+.card{background:white;padding:15px;margin-top:20px;border-radius:6px;box-shadow:0 4px 8px rgba(0,0,0,0.1)}
+.total{font-size:18px;font-weight:bold;margin-top:10px}
 </style>
 </head>
 
 <body>
 
-<header>Easy Travel</header>
+<header>Easy Travel Agency</header>
 
-<!-- PANTALLA BUSQUEDA -->
-<div id="pantallaBusqueda" class="section">
-<form id="formBusqueda">
-<input type="text" id="destino" placeholder="Destino" required>
-<input type="date" required>
-<input type="date" required>
-<input type="number" placeholder="Pasajeros" required>
-<button type="submit">Buscar</button>
-</form>
-</div>
+<div class="container">
 
-<!-- PANTALLA RESULTADOS -->
-<div id="pantallaResultados" class="section">
+<h3>Planificador Profesional de Viajes</h3>
 
-<button onclick="volver()">← Nueva búsqueda</button>
+<input type="text" id="destino" placeholder="Destino (cualquier ciudad del mundo)">
+<input type="number" id="dias" placeholder="Número de días">
+<input type="number" id="personas" placeholder="Número de pasajeros">
 
-<div class="filtros">
-<select id="filtroPrecio">
-<option value="0">Precio máximo</option>
-<option value="100">Hasta 100€</option>
-<option value="150">Hasta 150€</option>
-<option value="250">Hasta 250€</option>
+<select id="tipo">
+<option value="romantico">Romántico</option>
+<option value="aventura">Aventura</option>
+<option value="familiar">Familiar</option>
+<option value="cultural">Cultural</option>
 </select>
 
-<select id="filtroEstrellas">
-<option value="0">Estrellas</option>
-<option value="3">3+</option>
-<option value="4">4+</option>
-<option value="5">5</option>
+<select id="presupuesto">
+<option value="bajo">Presupuesto Bajo</option>
+<option value="medio">Presupuesto Medio</option>
+<option value="alto">Presupuesto Alto</option>
 </select>
 
-<select id="filtroPuntuacion">
-<option value="0">Puntuación</option>
-<option value="7">7+</option>
-<option value="8">8+</option>
-<option value="9">9+</option>
-</select>
+<label>Margen de beneficio (%)</label>
+<input type="number" id="margen" value="20">
 
-<button onclick="aplicarFiltros()">Aplicar filtros</button>
-</div>
+<label>
+<input type="checkbox" id="modoAgencia">
+ Mostrar datos internos de agencia
+</label>
 
-<div id="contenedorHoteles"></div>
+<button onclick="generarViaje()">Generar Plan</button>
+<button onclick="exportarPDF()">Exportar PDF Profesional</button>
 
-<div id="contenedorItinerario"></div>
+<div id="resultado"></div>
 
 </div>
 
 <script>
 
-// BASE LIMPIA
-const hotelesBase = [
-{
-nombre:"Grand Palace",
-precio:120,
-estrellas:4,
-puntuacion:8.5,
-imagen:"https://images.unsplash.com/photo-1566073771259-6a8506099945",
-descripcion:"Hotel céntrico con desayuno incluido."
-},
-{
-nombre:"City Urban Hotel",
-precio:90,
-estrellas:3,
-puntuacion:7.8,
-imagen:"https://images.unsplash.com/photo-1551776235-dde6d4829808",
-descripcion:"Habitaciones modernas cerca del centro."
-},
-{
-nombre:"Luxury Royal Resort",
-precio:210,
-estrellas:5,
-puntuacion:9.2,
-imagen:"https://images.unsplash.com/photo-1582719478250-c89cae4dc85b",
-descripcion:"Resort 5 estrellas con spa y piscina."
-}
-];
+// ================= ACTIVIDADES UNIVERSALES =================
 
-let destinoGlobal = "";
+const actividadesBase = {
 
-// BUSQUEDA
-document.getElementById("formBusqueda").addEventListener("submit", function(e){
-e.preventDefault();
+romantico:[
+"Tour panorámico al atardecer",
+"Cena gourmet local",
+"Paseo histórico por el centro",
+"Mirador romántico con vistas",
+"Experiencia cultural exclusiva"
+],
 
-destinoGlobal = document.getElementById("destino").value;
+aventura:[
+"Ruta de senderismo",
+"Excursión natural guiada",
+"Actividad deportiva local",
+"Exploración de zona montañosa",
+"Experiencia acuática o outdoor"
+],
 
-document.getElementById("pantallaBusqueda").style.display="none";
-document.getElementById("pantallaResultados").style.display="block";
+familiar:[
+"Parque temático o recreativo",
+"Visita interactiva cultural",
+"Actividad educativa local",
+"Tour guiado familiar",
+"Espacio natural adaptado"
+],
 
-mostrarHoteles(hotelesBase);
-generarItinerario(destinoGlobal);
-});
+cultural:[
+"Museo principal de la ciudad",
+"Centro histórico guiado",
+"Monumento emblemático",
+"Mercado tradicional",
+"Evento cultural o espectáculo local"
+]
 
-// MOSTRAR HOTELES
-function mostrarHoteles(lista){
+};
 
-const contenedor = document.getElementById("contenedorHoteles");
-contenedor.innerHTML = "";
+// ================= GENERAR VIAJE =================
 
-if(lista.length === 0){
-contenedor.innerHTML = "<p>No se encontraron hoteles.</p>";
+function generarViaje(){
+
+let destino=document.getElementById("destino").value;
+let dias=parseInt(document.getElementById("dias").value);
+let personas=parseInt(document.getElementById("personas").value);
+let tipo=document.getElementById("tipo").value;
+let presupuesto=document.getElementById("presupuesto").value;
+
+if(!destino || !dias || !personas){
+alert("Completa todos los campos");
 return;
 }
 
-lista.forEach(hotel => {
+// COSTES BASE
+let hotel, comida, actividadesCoste, transporte;
 
-const card = document.createElement("div");
-card.className = "hotel-card";
+if(presupuesto==="bajo"){
+hotel=60; comida=25; actividadesCoste=20; transporte=15;
+}else if(presupuesto==="medio"){
+hotel=120; comida=45; actividadesCoste=35; transporte=25;
+}else{
+hotel=250; comida=80; actividadesCoste=60; transporte=40;
+}
 
-card.innerHTML = `
-<img src="${hotel.imagen}">
-<div class="hotel-info">
-<h2>${hotel.nombre} - ${destinoGlobal}</h2>
-<p>${hotel.descripcion}</p>
-<p class="estrella">${"★".repeat(hotel.estrellas)}</p>
-<p>Puntuación: ${hotel.puntuacion}</p>
-<p class="precio">${hotel.precio} € / noche</p>
-<button>Reservar</button>
+let alojamientoTotal=hotel*dias;
+let comidaTotal=comida*dias;
+let actividadesTotal=actividadesCoste*dias;
+let transporteTotal=transporte*dias;
+
+let totalPersona=alojamientoTotal+comidaTotal+actividadesTotal+transporteTotal;
+let totalViaje=totalPersona*personas;
+
+// MARGEN
+let margen=parseInt(document.getElementById("margen").value)/100;
+let beneficioTotal=totalViaje*margen;
+let precioFinalViaje=totalViaje+beneficioTotal;
+let precioFinalPersona=precioFinalViaje/personas;
+
+let mostrarInterno=document.getElementById("modoAgencia").checked;
+
+// GENERADOR UNIVERSAL
+let itinerario="";
+let actividadesLista=actividadesBase[tipo];
+
+for(let i=1;i<=dias;i++){
+let actividad=actividadesLista[(i-1)%actividadesLista.length];
+itinerario+=`
+<p><strong>Día ${i}:</strong> ${actividad} en ${destino}.</p>
+`;
+}
+
+// RESULTADO
+let resumen=`
+<div class="card">
+<h3>Itinerario en ${destino}</h3>
+${itinerario}
+</div>
+
+<div class="card">
+<h3>Resumen Económico</h3>
+<p>🏨 Alojamiento: €${alojamientoTotal}</p>
+<p>🍽 Comidas: €${comidaTotal}</p>
+<p>🎟 Actividades: €${actividadesTotal}</p>
+<p>🚕 Transporte: €${transporteTotal}</p>
+<p class="total">Precio final por persona: €${precioFinalPersona.toFixed(2)}</p>
+<p class="total">Precio final total (${personas} personas): €${precioFinalViaje.toFixed(2)}</p>
 </div>
 `;
 
-contenedor.appendChild(card);
-
-});
-}
-
-// FILTROS
-function aplicarFiltros(){
-
-const precioMax = document.getElementById("filtroPrecio").value;
-const estrellasMin = document.getElementById("filtroEstrellas").value;
-const puntuacionMin = document.getElementById("filtroPuntuacion").value;
-
-const filtrados = hotelesBase.filter(hotel => {
-return (precioMax==0 || hotel.precio<=precioMax)
-&& (estrellasMin==0 || hotel.estrellas>=estrellasMin)
-&& (puntuacionMin==0 || hotel.puntuacion>=puntuacionMin);
-});
-
-mostrarHoteles(filtrados);
-}
-
-// ITINERARIO
-function generarItinerario(destino){
-
-const contenedor = document.getElementById("contenedorItinerario");
-
-contenedor.innerHTML = `
-<div class="itinerario">
-<h2>Itinerario recomendado en ${destino}</h2>
-
-<div class="actividad">
-<strong>Día 1</strong><br>
-09:00 - Tour guiado<br>
-13:00 - Almuerzo local<br>
-17:00 - Museo principal
-</div>
-
-<div class="actividad">
-<strong>Día 2</strong><br>
-08:30 - Excursión panorámica<br>
-14:00 - Ruta cultural<br>
-20:00 - Cena tradicional
-</div>
-
-<div class="actividad">
-<strong>Día 3</strong><br>
-10:00 - Actividad al aire libre<br>
-16:00 - Tiempo libre<br>
-21:00 - Evento nocturno
-</div>
-
+if(mostrarInterno){
+resumen+=`
+<div class="card" style="background:#fff3cd">
+<h4>Datos internos agencia</h4>
+<p>Coste real total: €${totalViaje.toFixed(2)}</p>
+<p>Beneficio estimado: €${beneficioTotal.toFixed(2)}</p>
 </div>
 `;
 }
 
-// VOLVER
-function volver(){
-document.getElementById("pantallaResultados").style.display="none";
-document.getElementById("pantallaBusqueda").style.display="block";
+document.getElementById("resultado").innerHTML=resumen;
+
 }
 
-</script>
+// ================= PDF PROFESIONAL =================
 
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Easy Travel</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-<style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:Poppins,sans-serif}
+function exportarPDF(){
 
-body{
-  min-height:100vh;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  background-size:cover;
-  background-position:center;
-  transition:background-image 1s ease-in-out;
-}
+const { jsPDF } = window.jspdf;
+const doc = new jsPDF();
 
-.app{
-  width:95%;
-  max-width:420px;
-  background:rgba(0,0,0,0.75);
-  backdrop-filter:blur(12px);
-  border-radius:25px;
-  padding:20px;
-  color:#fff;
-}
+let destino=document.getElementById("destino").value;
+let dias=document.getElementById("dias").value;
+let personas=document.getElementById("personas").value;
+let fecha=new Date().toLocaleDateString();
+let referencia="ET-"+Math.floor(Math.random()*100000);
 
-h1{text-align:center;margin-bottom:15px;font-weight:700}
+doc.setFillColor(0,0,0);
+doc.rect(0,0,210,60,"F");
 
-.form-group{margin-bottom:10px}
+doc.setTextColor(255,255,255);
+doc.setFontSize(28);
+doc.text("Easy Travel Agency",20,35);
 
-input{
-  width:100%;
-  padding:10px;
-  border:none;
-  border-radius:12px;
-}
+doc.setFontSize(14);
+doc.text("Propuesta Personalizada",20,50);
 
-button{
-  width:100%;
-  padding:12px;
-  margin-top:10px;
-  border:none;
-  border-radius:15px;
-  font-weight:600;
-  cursor:pointer;
-  background:#fff;
-}
+doc.setTextColor(0,0,0);
+doc.setFontSize(12);
+doc.text("Referencia: "+referencia,20,75);
+doc.text("Fecha: "+fecha,20,85);
 
-.resultados{margin-top:15px}
+doc.addPage();
+doc.setFontSize(18);
+doc.text("Detalles del Viaje",20,20);
+doc.setFontSize(12);
+doc.text("Destino: "+destino,20,35);
+doc.text("Duración: "+dias+" días",20,45);
+doc.text("Pasajeros: "+personas,20,55);
 
-.card{
-  background:rgba(255,255,255,0.1);
-  padding:12px;
-  border-radius:15px;
-  margin-bottom:12px;
-}
+doc.addPage();
+doc.setFontSize(16);
+doc.text("Gracias por confiar en Easy Travel Agency",20,40);
 
-.card img{
-  width:100%;
-  height:150px;
-  object-fit:cover;
-  border-radius:12px;
-  margin-bottom:8px;
-}
-
-.price{font-weight:700;color:#4cff4c}
-</style>
-</head>
-<body>
-
-<div class="app">
-  <h1>Easy Travel</h1>
-
-  <div class="form-group">
-    <input type="text" id="origen" placeholder="Ciudad de salida">
-  </div>
-
-  <div class="form-group">
-    <input type="text" id="destino" placeholder="Destino">
-  </div>
-
-  <div class="form-group">
-    <input type="date" id="fechaSalida">
-  </div>
-
-  <div class="form-group">
-    <input type="date" id="fechaLlegada">
-  </div>
-
-  <div class="form-group">
-    <input type="number" id="pasajeros" placeholder="Pasajeros" min="1" value="1">
-  </div>
-
-  <button onclick="buscar()">Buscar Viaje</button>
-
-  <div class="resultados" id="resultados"></div>
-</div>
-
-<script>
-
-// ===== FONDOS DINÁMICOS =====
-const fondos = [
-"https://images.unsplash.com/photo-1502602898657-3e91760cbb34",
-"https://images.unsplash.com/photo-1499856871958-5b9627545d1a",
-"https://images.unsplash.com/photo-1505761671935-60b3a7427bad",
-"https://images.unsplash.com/photo-1534438327276-14e5300c3a48"
-];
-
-let fondoIndex=0;
-function cambiarFondo(){
-  document.body.style.backgroundImage=`url(${fondos[fondoIndex]})`;
-  fondoIndex=(fondoIndex+1)%fondos.length;
-}
-cambiarFondo();
-setInterval(cambiarFondo,6000);
-
-// ===== GENERADOR DINÁMICO DE HOTELES =====
-function generarHoteles(destino, pasajeros){
-
-  const nombresBase = [
-    "Grand Palace",
-    "Royal Suites",
-    "City Center Hotel",
-    "Luxury Resort",
-    "Urban Boutique",
-    "Skyline Hotel",
-    "Premium Stay",
-    "Golden View"
-  ];
-
-  const imagenes = [
-    "https://images.unsplash.com/photo-1566073771259-6a8506099945",
-    "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b",
-    "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa",
-    "https://images.unsplash.com/photo-1445019980597-93fa8acb246c"
-  ];
-
-  let hoteles=[];
-
-  for(let i=0;i<6;i++){
-    const nombre = `${nombresBase[Math.floor(Math.random()*nombresBase.length)]} ${destino}`;
-    const precioBase = Math.floor(Math.random()*150)+80;
-
-    hoteles.push({
-      nombre:nombre,
-      precio:precioBase*pasajeros,
-      imagen:imagenes[Math.floor(Math.random()*imagenes.length)],
-      descripcion:`Hotel en ${destino} con excelente ubicación y servicios premium.`
-    });
-  }
-
-  return hoteles;
-}
-
-// ===== FUNCIÓN BUSCAR =====
-function buscar(){
-
-  const destino=document.getElementById("destino").value.trim();
-  const pasajeros=parseInt(document.getElementById("pasajeros").value);
-
-  if(!destino){
-    alert("Introduce un destino");
-    return;
-  }
-
-  const hoteles = generarHoteles(destino, pasajeros);
-  mostrarHoteles(hoteles);
-}
-
-// ===== MOSTRAR RESULTADOS =====
-function mostrarHoteles(lista){
-
-  const cont=document.getElementById("resultados");
-  cont.innerHTML="";
-
-  lista.forEach(hotel=>{
-    cont.innerHTML+=`
-      <div class="card">
-        <img src="${hotel.imagen}">
-        <h3>${hotel.nombre}</h3>
-        <p>${hotel.descripcion}</p>
-        <p class="price">${hotel.precio}€ total</p>
-      </div>
-    `;
-  });
+doc.save("EasyTravel_Propuesta.pdf");
 }
 
 </script>
