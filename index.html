@@ -17,9 +17,6 @@ button:hover{opacity:0.9}
 .hidden{display:none}
 .price{float:right;font-weight:bold;color:#0d47a1}
 .total{font-size:20px;font-weight:bold;margin-top:10px}
-.carousel{position:relative;height:250px;overflow:hidden;border-radius:10px;margin-bottom:20px}
-.carousel img{width:100%;height:250px;object-fit:cover;position:absolute;opacity:0;transition:opacity 1s}
-.carousel img.active{opacity:1}
 </style>
 </head>
 
@@ -28,12 +25,6 @@ button:hover{opacity:0.9}
 <header>Easy Travel Planner — Premium</header>
 
 <div class="container" id="pantalla1">
-
-<div class="carousel">
-<img src="https://source.unsplash.com/1600x900/?rome" class="active">
-<img src="https://source.unsplash.com/1600x900/?paris">
-<img src="https://source.unsplash.com/1600x900/?newyork">
-</div>
 
 <h3>Planifica tu viaje</h3>
 
@@ -54,15 +45,6 @@ button:hover{opacity:0.9}
 </div>
 
 <script>
-
-// ===== CARRUSEL =====
-let slides=document.querySelectorAll(".carousel img");
-let index=0;
-setInterval(()=>{
-slides[index].classList.remove("active");
-index=(index+1)%slides.length;
-slides[index].classList.add("active");
-},4000);
 
 // ===== NORMALIZAR =====
 function normalizar(text){
@@ -184,7 +166,20 @@ for(let i=0;i<dias;i++){
 
 html+=`<div class="card"><div class="section-title">Día ${i+1}</div>`;
 
-if(ciudad){
+// ===== ÚLTIMO DÍA SIEMPRE LIBRE =====
+if(i === dias-1){
+
+let restauranteFinal = ciudad ? Object.values(ciudad.restaurantes)[0] : "Restaurante Local";
+let precioCena=40*personas;
+totalActividades+=precioCena;
+
+html+=`
+<p>10:00 Día libre para explorar a tu ritmo</p>
+<p>21:00 Cena en ${restauranteFinal}
+<span class="price">€${precioCena}</span></p>
+`;
+
+}else if(ciudad){
 
 let bloque=ciudad.actividades[i % ciudad.actividades.length];
 let hora=10;
@@ -214,14 +209,15 @@ html+=`
 
 }else{
 
+let precioCena=30*personas;
+totalActividades+=precioCena;
+
 html+=`
 <p>10:00 Tour centro histórico</p>
 <p>13:00 Museo principal</p>
 <p>17:00 Zona emblemática</p>
-<p>21:00 Cena restaurante local <span class="price">€${30*personas}</span></p>
+<p>21:00 Cena restaurante local <span class="price">€${precioCena}</span></p>
 `;
-
-totalActividades+=30*personas;
 }
 
 html+=`</div>`;
@@ -260,4 +256,6 @@ document.getElementById("pantalla1").classList.remove("hidden");
 }
 
 </script>
+
+</body>
 
