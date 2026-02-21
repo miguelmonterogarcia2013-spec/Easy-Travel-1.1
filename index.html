@@ -15,13 +15,14 @@ button:hover{opacity:0.9}
 .card{background:white;padding:15px;margin-top:20px;border-radius:8px;box-shadow:0 4px 10px rgba(0,0,0,0.1)}
 .section-title{font-size:18px;font-weight:bold;margin-top:10px}
 .hidden{display:none}
+.price{float:right;font-weight:bold;color:#0d47a1}
 .total{font-size:20px;font-weight:bold;margin-top:10px}
 </style>
 </head>
 
 <body>
 
-<header>Easy Travel Planner — Itinerario Profesional</header>
+<header>Easy Travel Planner — Itinerario con Costes</header>
 
 <!-- PANTALLA 1 -->
 <div class="container" id="pantalla1">
@@ -31,7 +32,7 @@ button:hover{opacity:0.9}
 <input type="text" id="origen" placeholder="Desde dónde sales">
 <input type="text" id="destino" placeholder="Destino">
 <input type="date" id="fechaSalida">
-<input type="number" id="dias" placeholder="Número de días (mínimo 5)">
+<input type="number" id="dias" placeholder="Número de días">
 <input type="number" id="personas" placeholder="Número de personas">
 
 <button onclick="generarViaje()">Generar Viaje</button>
@@ -50,129 +51,53 @@ button:hover{opacity:0.9}
 
 <script>
 
-// Normalizar texto
+// ================= NORMALIZAR =================
 function normalizar(text){
 return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
 }
 
-// ===================== ITINERARIOS 5 DÍAS (DÍA 4 LIBRE) =====================
+// ================= BASE ACTIVIDADES CON PRECIO BASE POR PERSONA =================
 
-const itinerarios = {
+const baseActividades = {
 
 roma:[
-[
-"9:00 Coliseo",
-"11:00 Foro Romano",
-"15:00 Plaza Venecia",
-"18:00 Fontana di Trevi",
-"20:30 Cena en Trastevere"
-],
-[
-"9:00 Vaticano",
-"12:00 Basílica San Pedro",
-"15:30 Castillo Sant'Angelo",
-"18:30 Piazza Navona"
-],
-[
-"9:30 Panteón",
-"11:30 Plaza de España",
-"16:00 Villa Borghese",
-"19:30 Mirador Gianicolo"
-],
-[
-"DÍA LIBRE — Explorar barrios, compras o descanso"
-],
-[
-"9:00 Excursión a Tivoli",
-"14:00 Villa d'Este",
-"19:00 Cena típica romana"
-]
+[{nombre:"Coliseo",precio:25},{nombre:"Foro Romano",precio:18},{nombre:"Fontana di Trevi",precio:0}],
+[{nombre:"Vaticano",precio:30},{nombre:"Basílica San Pedro",precio:0},{nombre:"Castillo Sant'Angelo",precio:20}],
+[{nombre:"Panteón",precio:5},{nombre:"Plaza de España",precio:0},{nombre:"Villa Borghese",precio:0}],
+[{nombre:"Excursión a Tivoli",precio:40},{nombre:"Villa d'Este",precio:15}],
+[{nombre:"Catacumbas",precio:12},{nombre:"Barrio Trastevere",precio:0}]
 ],
 
 paris:[
-[
-"9:00 Torre Eiffel",
-"11:30 Arco del Triunfo",
-"15:00 Campos Elíseos",
-"19:00 Crucero Sena"
-],
-[
-"9:00 Museo Louvre",
-"14:00 Jardín Tullerías",
-"17:00 Notre Dame"
-],
-[
-"9:30 Montmartre",
-"12:00 Sacré-Cœur",
-"16:00 Barrio Latino"
-],
-[
-"DÍA LIBRE — Compras o Versalles opcional"
-],
-[
-"9:00 Palacio de Versalles",
-"16:00 Galerías Lafayette",
-"20:00 Moulin Rouge"
-]
+[{nombre:"Torre Eiffel",precio:28},{nombre:"Arco del Triunfo",precio:16}],
+[{nombre:"Museo Louvre",precio:20},{nombre:"Jardín Tullerías",precio:0}],
+[{nombre:"Montmartre",precio:0},{nombre:"Sacré-Cœur",precio:0}],
+[{nombre:"Palacio de Versalles",precio:25}],
+[{nombre:"Crucero Sena",precio:22},{nombre:"Moulin Rouge",precio:95}]
 ],
 
 "nueva york":[
-[
-"9:00 Estatua Libertad",
-"13:00 Wall Street",
-"17:00 Brooklyn Bridge",
-"20:00 Times Square"
-],
-[
-"9:00 Central Park",
-"12:00 Museo MET",
-"18:00 Quinta Avenida"
-],
-[
-"9:00 Empire State",
-"13:00 High Line",
-"16:00 Chelsea Market"
-],
-[
-"DÍA LIBRE — Compras o Brooklyn alternativo"
-],
-[
-"9:00 Bronx Zoo",
-"14:00 Hudson Yards",
-"19:00 Broadway"
-]
+[{nombre:"Estatua Libertad",precio:30},{nombre:"Wall Street",precio:0}],
+[{nombre:"Museo MET",precio:25},{nombre:"Central Park",precio:0}],
+[{nombre:"Empire State",precio:44}],
+[{nombre:"High Line",precio:0},{nombre:"Chelsea Market",precio:0}],
+[{nombre:"Broadway",precio:80}]
 ]
 
 };
 
-// ===================== TEMPORADA =====================
+// ================= TEMPORADA =================
 
 function multiplicadorTemporada(destino,fecha){
 let mes=new Date(fecha).getMonth()+1;
 destino=normalizar(destino);
 
-if(destino==="roma"){
-if([5,6,7,8,9].includes(mes)) return 1.4;
-if([3,4,10].includes(mes)) return 1.1;
+if([6,7,8].includes(mes)) return 1.3;
+if([4,5,9,10].includes(mes)) return 1.1;
 return 0.9;
 }
 
-if(destino==="paris"){
-if([6,7,8,9].includes(mes)) return 1.35;
-if([4,5,10].includes(mes)) return 1.1;
-return 0.95;
-}
-
-if(destino==="nueva york"){
-if([6,7,8,12].includes(mes)) return 1.5;
-if([4,5,9,10].includes(mes)) return 1.15;
-return 0.9;
-}
-
-return 1;
-}
-
-// ===================== GENERAR VIAJE =====================
+// ================= GENERAR VIAJE =================
 
 function generarViaje(){
 
@@ -188,49 +113,62 @@ alert("Completa todos los campos");
 return;
 }
 
-if(dias<5){
-alert("El itinerario mínimo es de 5 días");
-return;
-}
-
-// Precios base
-let hotel=130;
-let comida=50;
-let actividad=45;
-let transporte=25;
-let vuelo=300;
-
 let mult=multiplicadorTemporada(destino,fecha);
 
-hotel*=mult;
-actividad*=mult;
-vuelo*=mult;
-
-let total=(hotel*dias*personas)+(comida*dias*personas)+(actividad*dias*personas)+(transporte*dias*personas)+(vuelo*personas);
-
-// Generar itinerario
 let html="";
+let totalActividades=0;
+
+let actividadesCiudad=baseActividades[destino];
 
 for(let i=0;i<dias;i++){
 
 html+=`<div class="card"><div class="section-title">Día ${i+1}</div>`;
 
-if(itinerarios[destino]){
-let plan=itinerarios[destino][i] || ["Día adicional libre para explorar"];
-plan.forEach(act=>{
-html+=`<p>${act}</p>`;
-});
+if(actividadesCiudad){
+
+if(dias>=5 && i===Math.floor(dias/2)){
+html+=`<p>Día libre para explorar</p>`;
 }else{
+
+let bloque=actividadesCiudad[i % actividadesCiudad.length];
+
+bloque.forEach((act,index)=>{
+
+let precioFinal=act.precio*personas*mult;
+totalActividades+=precioFinal;
+
 html+=`
-<p>9:00 Tour centro histórico</p>
-<p>12:00 Museo principal</p>
-<p>16:00 Zona emblemática</p>
-<p>20:00 Cena local</p>
+<p>
+${9+(index*2)}:00 ${act.nombre}
+<span class="price">€${Math.round(precioFinal)}</span>
+</p>
 `;
+
+});
+
+}
+
+}else{
+
+html+=`
+<p>9:00 Tour centro histórico <span class="price">€${20*personas}</span></p>
+<p>12:00 Museo principal <span class="price">€${15*personas}</span></p>
+`;
+
+totalActividades+=35*personas;
+
 }
 
 html+=`</div>`;
 }
+
+// COSTES GENERALES
+let hotel=120*dias*personas*mult;
+let comida=50*dias*personas;
+let transporte=25*dias*personas;
+let vuelo=300*personas*mult;
+
+let totalFinal=hotel+comida+transporte+vuelo+totalActividades;
 
 document.getElementById("pantalla1").classList.add("hidden");
 document.getElementById("pantalla2").classList.remove("hidden");
@@ -238,11 +176,17 @@ document.getElementById("pantalla2").classList.remove("hidden");
 document.getElementById("tituloViaje").innerHTML=
 `Viaje ${origen} → ${destinoOriginal} (${dias} días)`;
 
+
 document.getElementById("resultado").innerHTML=
-html+`
+html+
+`
 <div class="card">
-<h3>Estimación según demanda</h3>
-<p>Total aproximado: €${Math.round(total)}</p>
+<h3>Resumen de Costes</h3>
+<p>Hotel estimado: €${Math.round(hotel)}</p>
+<p>Comida estimada: €${Math.round(comida)}</p>
+<p>Transporte local: €${Math.round(transporte)}</p>
+<p>Vuelo estimado: €${Math.round(vuelo)}</p>
+<p class="total">TOTAL APROXIMADO: €${Math.round(totalFinal)}</p>
 </div>
 `;
 
@@ -256,4 +200,3 @@ document.getElementById("pantalla1").classList.remove("hidden");
 </script>
 
 </body>
-</html>
