@@ -7,25 +7,91 @@
 
 <style>
 body{margin:0;font-family:Arial;background:#eef1f7}
-header{background:#0d47a1;color:white;padding:15px;text-align:center;font-size:22px} 
+header{background:#0d47a1;color:white;padding:15px;text-align:center;font-size:22px}
+
 .container{max-width:900px;margin:auto;padding:20px}
-input,button{width:100%;padding:10px;margin:8px 0;font-size:15px;border-radius:6px;border:1px solid #ccc}
-button{background:#0d47a1;color:white;border:none;cursor:pointer}
+
+input,button{
+width:100%;
+padding:10px;
+margin:8px 0;
+font-size:15px;
+border-radius:6px;
+border:1px solid #ccc
+}
+
+button{
+background:#0d47a1;
+color:white;
+border:none;
+cursor:pointer
+}
+
 button:hover{opacity:0.9}
-.card{background:white;padding:15px;margin-top:20px;border-radius:8px;box-shadow:0 4px 10px rgba(0,0,0,0.1)}
-.section-title{font-size:18px;font-weight:bold;margin-top:10px}
+
+.card{
+background:white;
+padding:15px;
+margin-top:20px;
+border-radius:8px;
+box-shadow:0 4px 10px rgba(0,0,0,0.1)
+}
+
+.section-title{
+font-size:18px;
+font-weight:bold;
+margin-top:10px
+}
+
 .hidden{display:none}
-.price{float:right;font-weight:bold;color:#0d47a1}
-.total{font-size:20px;font-weight:bold;margin-top:10px}
+
+.price{
+float:right;
+font-weight:bold;
+color:#0d47a1
+}
+
+.total{
+font-size:20px;
+font-weight:bold;
+margin-top:10px
+}
+
+/* ===== CARRUSEL ===== */
+.carousel{
+position:relative;
+height:250px;
+overflow:hidden;
+border-radius:10px;
+margin-bottom:20px
+}
+
+.carousel img{
+width:100%;
+height:250px;
+object-fit:cover;
+position:absolute;
+opacity:0;
+transition:opacity 1s ease-in-out
+}
+
+.carousel img.active{
+opacity:1
+}
 </style>
 </head>
 
 <body>
 
-<header>Easy Travel Planner — Itinerario con Costes</header>
+<header>Easy Travel Planner — Premium</header>
 
-<!-- PANTALLA 1 -->
 <div class="container" id="pantalla1">
+
+<div class="carousel">
+<img src="https://source.unsplash.com/1600x900/?rome" class="active">
+<img src="https://source.unsplash.com/1600x900/?paris">
+<img src="https://source.unsplash.com/1600x900/?newyork">
+</div>
 
 <h3>Planifica tu viaje</h3>
 
@@ -39,66 +105,57 @@ button:hover{opacity:0.9}
 
 </div>
 
-<!-- PANTALLA 2 -->
 <div class="container hidden" id="pantalla2">
-
 <h2 id="tituloViaje"></h2>
 <div id="resultado"></div>
-
 <button onclick="volver()">← Volver</button>
-
 </div>
 
 <script>
 
-// ================= NORMALIZAR =================
+// ===== CARRUSEL AUTOMÁTICO =====
+let slides=document.querySelectorAll(".carousel img");
+let index=0;
+
+setInterval(()=>{
+slides[index].classList.remove("active");
+index=(index+1)%slides.length;
+slides[index].classList.add("active");
+},4000);
+
+// ===== NORMALIZAR =====
 function normalizar(text){
 return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
 }
 
-// ================= BASE ACTIVIDADES CON PRECIO BASE POR PERSONA =================
-
-const baseActividades = {
-
+// ===== ACTIVIDADES =====
+const baseActividades={
 roma:[
-[{nombre:"Coliseo",precio:25},{nombre:"Foro Romano",precio:18},{nombre:"Fontana di Trevi",precio:0}],
-[{nombre:"Vaticano",precio:30},{nombre:"Basílica San Pedro",precio:0},{nombre:"Castillo Sant'Angelo",precio:20}],
-[{nombre:"Panteón",precio:5},{nombre:"Plaza de España",precio:0},{nombre:"Villa Borghese",precio:0}],
-[{nombre:"Excursión a Tivoli",precio:40},{nombre:"Villa d'Este",precio:15}],
-[{nombre:"Catacumbas",precio:12},{nombre:"Barrio Trastevere",precio:0}]
+[{nombre:"Coliseo",precio:25,zona:"Coliseo"},
+{nombre:"Foro Romano",precio:18,zona:"Coliseo"},
+{nombre:"Plaza Venecia",precio:0,zona:"Centro Histórico"}]
 ],
-
 paris:[
-[{nombre:"Torre Eiffel",precio:28},{nombre:"Arco del Triunfo",precio:16}],
-[{nombre:"Museo Louvre",precio:20},{nombre:"Jardín Tullerías",precio:0}],
-[{nombre:"Montmartre",precio:0},{nombre:"Sacré-Cœur",precio:0}],
-[{nombre:"Palacio de Versalles",precio:25}],
-[{nombre:"Crucero Sena",precio:22},{nombre:"Moulin Rouge",precio:95}]
+[{nombre:"Torre Eiffel",precio:28,zona:"Torre Eiffel"},
+{nombre:"Campos Elíseos",precio:0,zona:"Campos Elíseos"},
+{nombre:"Arco del Triunfo",precio:16,zona:"Campos Elíseos"}]
 ],
-
 "nueva york":[
-[{nombre:"Estatua Libertad",precio:30},{nombre:"Wall Street",precio:0}],
-[{nombre:"Museo MET",precio:25},{nombre:"Central Park",precio:0}],
-[{nombre:"Empire State",precio:44}],
-[{nombre:"High Line",precio:0},{nombre:"Chelsea Market",precio:0}],
-[{nombre:"Broadway",precio:80}]
+[{nombre:"Estatua Libertad",precio:30,zona:"Lower Manhattan"},
+{nombre:"Wall Street",precio:0,zona:"Lower Manhattan"},
+{nombre:"One World Trade Center",precio:35,zona:"Lower Manhattan"}]
 ]
-
 };
 
-// ================= TEMPORADA =================
-
-function multiplicadorTemporada(destino,fecha){
+// ===== TEMPORADA =====
+function multiplicadorTemporada(fecha){
 let mes=new Date(fecha).getMonth()+1;
-destino=normalizar(destino);
-
 if([6,7,8].includes(mes)) return 1.3;
 if([4,5,9,10].includes(mes)) return 1.1;
 return 0.9;
 }
 
-// ================= GENERAR VIAJE =================
-
+// ===== GENERAR VIAJE =====
 function generarViaje(){
 
 let origen=document.getElementById("origen").value;
@@ -113,11 +170,9 @@ alert("Completa todos los campos");
 return;
 }
 
-let mult=multiplicadorTemporada(destino,fecha);
-
+let mult=multiplicadorTemporada(fecha);
 let html="";
 let totalActividades=0;
-
 let actividadesCiudad=baseActividades[destino];
 
 for(let i=0;i<dias;i++){
@@ -126,45 +181,52 @@ html+=`<div class="card"><div class="section-title">Día ${i+1}</div>`;
 
 if(actividadesCiudad){
 
-if(dias>=5 && i===Math.floor(dias/2)){
-html+=`<p>Día libre para explorar</p>`;
-}else{
+let bloque=actividadesCiudad[0];
+let hora=10;
+let ultimaZona="Centro";
 
-let bloque=actividadesCiudad[i % actividadesCiudad.length];
-
-bloque.forEach((act,index)=>{
-
+bloque.forEach(act=>{
 let precioFinal=act.precio*personas*mult;
 totalActividades+=precioFinal;
 
 html+=`
 <p>
-${9+(index*2)}:00 ${act.nombre}
+${hora}:00 ${act.nombre}
 <span class="price">€${Math.round(precioFinal)}</span>
 </p>
 `;
 
+hora+=3;
+ultimaZona=act.zona;
 });
 
-}
+let precioCena=35*personas;
+totalActividades+=precioCena;
+
+html+=`
+<p>
+21:00 Cena en restaurante zona ${ultimaZona}
+<span class="price">€${Math.round(precioCena)}</span>
+</p>
+`;
 
 }else{
 
 html+=`
-<p>9:00 Tour centro histórico <span class="price">€${20*personas}</span></p>
-<p>12:00 Museo principal <span class="price">€${15*personas}</span></p>
+<p>10:00 Tour centro histórico <span class="price">€${20*personas}</span></p>
+<p>13:00 Museo principal <span class="price">€${15*personas}</span></p>
+<p>17:00 Zona emblemática <span class="price">€${10*personas}</span></p>
+<p>21:00 Cena restaurante local <span class="price">€${30*personas}</span></p>
 `;
 
-totalActividades+=35*personas;
-
+totalActividades+=75*personas;
 }
 
 html+=`</div>`;
 }
 
-// COSTES GENERALES
 let hotel=120*dias*personas*mult;
-let comida=50*dias*personas;
+let comida=40*dias*personas;
 let transporte=25*dias*personas;
 let vuelo=300*personas*mult;
 
@@ -176,17 +238,16 @@ document.getElementById("pantalla2").classList.remove("hidden");
 document.getElementById("tituloViaje").innerHTML=
 `Viaje ${origen} → ${destinoOriginal} (${dias} días)`;
 
-
 document.getElementById("resultado").innerHTML=
 html+
 `
 <div class="card">
 <h3>Resumen de Costes</h3>
-<p>Hotel estimado: €${Math.round(hotel)}</p>
-<p>Comida estimada: €${Math.round(comida)}</p>
-<p>Transporte local: €${Math.round(transporte)}</p>
-<p>Vuelo estimado: €${Math.round(vuelo)}</p>
-<p class="total">TOTAL APROXIMADO: €${Math.round(totalFinal)}</p>
+<p>Hotel: €${Math.round(hotel)}</p>
+<p>Comida base: €${Math.round(comida)}</p>
+<p>Transporte: €${Math.round(transporte)}</p>
+<p>Vuelo: €${Math.round(vuelo)}</p>
+<p class="total">TOTAL ESTIMADO: €${Math.round(totalFinal)}</p>
 </div>
 `;
 
@@ -200,3 +261,4 @@ document.getElementById("pantalla1").classList.remove("hidden");
 </script>
 
 </body>
+</html>
