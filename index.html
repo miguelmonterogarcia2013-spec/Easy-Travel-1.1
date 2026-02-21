@@ -21,7 +21,7 @@ button:hover{opacity:0.9}
 
 <body>
 
-<header>Easy Travel Planner — Precio según Demanda Real</header>
+<header>Easy Travel Planner — Itinerario Profesional</header>
 
 <!-- PANTALLA 1 -->
 <div class="container" id="pantalla1">
@@ -31,7 +31,7 @@ button:hover{opacity:0.9}
 <input type="text" id="origen" placeholder="Desde dónde sales">
 <input type="text" id="destino" placeholder="Destino">
 <input type="date" id="fechaSalida">
-<input type="number" id="dias" placeholder="Número de días">
+<input type="number" id="dias" placeholder="Número de días (mínimo 5)">
 <input type="number" id="personas" placeholder="Número de personas">
 
 <button onclick="generarViaje()">Generar Viaje</button>
@@ -55,88 +55,117 @@ function normalizar(text){
 return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
 }
 
-// ===================== ACTIVIDADES REALES =====================
+// ===================== ITINERARIOS 5 DÍAS (DÍA 4 LIBRE) =====================
 
-const actividades = {
+const itinerarios = {
 
 roma:[
-"9:00-10:30 Coliseo",
-"11:00-12:30 Foro Romano",
-"14:00-16:00 Vaticano",
-"17:00-18:00 Plaza de España",
-"20:00 Cena en Trastevere"
+[
+"9:00 Coliseo",
+"11:00 Foro Romano",
+"15:00 Plaza Venecia",
+"18:00 Fontana di Trevi",
+"20:30 Cena en Trastevere"
+],
+[
+"9:00 Vaticano",
+"12:00 Basílica San Pedro",
+"15:30 Castillo Sant'Angelo",
+"18:30 Piazza Navona"
+],
+[
+"9:30 Panteón",
+"11:30 Plaza de España",
+"16:00 Villa Borghese",
+"19:30 Mirador Gianicolo"
+],
+[
+"DÍA LIBRE — Explorar barrios, compras o descanso"
+],
+[
+"9:00 Excursión a Tivoli",
+"14:00 Villa d'Este",
+"19:00 Cena típica romana"
+]
 ],
 
 paris:[
-"9:00-11:00 Torre Eiffel",
-"11:30-14:00 Museo Louvre",
-"16:00-17:30 Catedral Notre Dame",
-"19:00 Crucero por el Sena"
+[
+"9:00 Torre Eiffel",
+"11:30 Arco del Triunfo",
+"15:00 Campos Elíseos",
+"19:00 Crucero Sena"
+],
+[
+"9:00 Museo Louvre",
+"14:00 Jardín Tullerías",
+"17:00 Notre Dame"
+],
+[
+"9:30 Montmartre",
+"12:00 Sacré-Cœur",
+"16:00 Barrio Latino"
+],
+[
+"DÍA LIBRE — Compras o Versalles opcional"
+],
+[
+"9:00 Palacio de Versalles",
+"16:00 Galerías Lafayette",
+"20:00 Moulin Rouge"
+]
 ],
 
 "nueva york":[
-"9:00 Estatua de la Libertad",
-"12:00 Central Park",
-"15:00 Museo MET",
-"19:00 Times Square"
+[
+"9:00 Estatua Libertad",
+"13:00 Wall Street",
+"17:00 Brooklyn Bridge",
+"20:00 Times Square"
 ],
-
-tokio:[
-"9:00 Templo Senso-ji",
-"12:00 Mercado Tsukiji",
-"15:00 Cruce Shibuya",
-"19:00 Barrio Shinjuku"
+[
+"9:00 Central Park",
+"12:00 Museo MET",
+"18:00 Quinta Avenida"
 ],
-
-madrid:[
-"9:30 Museo del Prado",
-"12:00 Palacio Real",
-"16:00 Parque del Retiro",
-"20:00 Ruta de tapas"
+[
+"9:00 Empire State",
+"13:00 High Line",
+"16:00 Chelsea Market"
+],
+[
+"DÍA LIBRE — Compras o Brooklyn alternativo"
+],
+[
+"9:00 Bronx Zoo",
+"14:00 Hudson Yards",
+"19:00 Broadway"
+]
 ]
 
 };
 
-// ===================== TEMPORADA POR CIUDAD =====================
+// ===================== TEMPORADA =====================
 
 function multiplicadorTemporada(destino,fecha){
+let mes=new Date(fecha).getMonth()+1;
+destino=normalizar(destino);
 
-let mes = new Date(fecha).getMonth()+1;
-
-destino = normalizar(destino);
-
-// ROMA
 if(destino==="roma"){
 if([5,6,7,8,9].includes(mes)) return 1.4;
 if([3,4,10].includes(mes)) return 1.1;
 return 0.9;
 }
 
-// PARIS
 if(destino==="paris"){
 if([6,7,8,9].includes(mes)) return 1.35;
 if([4,5,10].includes(mes)) return 1.1;
 return 0.95;
 }
 
-// NUEVA YORK
 if(destino==="nueva york"){
 if([6,7,8,12].includes(mes)) return 1.5;
 if([4,5,9,10].includes(mes)) return 1.15;
-return 0.9;
-}
-
-// TOKIO
-if(destino==="tokio"){
-if([3,4,10].includes(mes)) return 1.45;
-if([5,9].includes(mes)) return 1.15;
-return 0.85;
-}
-
-// MADRID
-if(destino==="madrid"){
-if([4,5,6,9].includes(mes)) return 1.3;
-if([3,10].includes(mes)) return 1.1;
 return 0.9;
 }
 
@@ -159,45 +188,43 @@ alert("Completa todos los campos");
 return;
 }
 
-// BASES REALISTAS MEDIAS
-let hotelBase=130;
-let comidaBase=50;
-let actividadBase=45;
-let transporteBase=25;
-let vueloBase=300;
+if(dias<5){
+alert("El itinerario mínimo es de 5 días");
+return;
+}
 
-// Aplicar temporada específica
+// Precios base
+let hotel=130;
+let comida=50;
+let actividad=45;
+let transporte=25;
+let vuelo=300;
+
 let mult=multiplicadorTemporada(destino,fecha);
 
-hotelBase*=mult;
-actividadBase*=mult;
-vueloBase*=mult;
+hotel*=mult;
+actividad*=mult;
+vuelo*=mult;
 
-let totalHotel=hotelBase*dias*personas;
-let totalComida=comidaBase*dias*personas;
-let totalActividades=actividadBase*dias*personas;
-let totalTransporte=transporteBase*dias*personas;
-let totalVuelo=vueloBase*personas;
-
-let totalViaje=totalHotel+totalComida+totalActividades+totalTransporte+totalVuelo;
+let total=(hotel*dias*personas)+(comida*dias*personas)+(actividad*dias*personas)+(transporte*dias*personas)+(vuelo*personas);
 
 // Generar itinerario
 let html="";
 
-for(let i=1;i<=dias;i++){
+for(let i=0;i<dias;i++){
 
-html+=`<div class="card">
-<div class="section-title">Día ${i}</div>`;
+html+=`<div class="card"><div class="section-title">Día ${i+1}</div>`;
 
-if(actividades[destino]){
-actividades[destino].forEach(act=>{
+if(itinerarios[destino]){
+let plan=itinerarios[destino][i] || ["Día adicional libre para explorar"];
+plan.forEach(act=>{
 html+=`<p>${act}</p>`;
 });
 }else{
 html+=`
-<p>9:00 Tour por el centro histórico</p>
+<p>9:00 Tour centro histórico</p>
 <p>12:00 Museo principal</p>
-<p>17:00 Barrio emblemático</p>
+<p>16:00 Zona emblemática</p>
 <p>20:00 Cena local</p>
 `;
 }
@@ -205,7 +232,6 @@ html+=`
 html+=`</div>`;
 }
 
-// Cambiar pantalla
 document.getElementById("pantalla1").classList.add("hidden");
 document.getElementById("pantalla2").classList.remove("hidden");
 
@@ -215,14 +241,8 @@ document.getElementById("tituloViaje").innerHTML=
 document.getElementById("resultado").innerHTML=
 html+`
 <div class="card">
-<h3>Presupuesto según demanda estacional</h3>
-<p>Multiplicador aplicado: x${mult}</p>
-<p>Vuelo: €${Math.round(totalVuelo)}</p>
-<p>Hotel: €${Math.round(totalHotel)}</p>
-<p>Comida: €${Math.round(totalComida)}</p>
-<p>Actividades: €${Math.round(totalActividades)}</p>
-<p>Transporte: €${Math.round(totalTransporte)}</p>
-<p class="total">TOTAL ESTIMADO: €${Math.round(totalViaje)}</p>
+<h3>Estimación según demanda</h3>
+<p>Total aproximado: €${Math.round(total)}</p>
 </div>
 `;
 
