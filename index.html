@@ -3,44 +3,36 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Easy Travel Planner Premium</title>
+<title>Easy Travel Planner Global</title>
 
 <style>
 body{margin:0;font-family:Arial;background:#eef1f7}
 header{background:#0d47a1;color:white;padding:15px;text-align:center;font-size:22px}
-.container{max-width:900px;margin:auto;padding:20px}
-input,button,select{width:100%;padding:10px;margin:8px 0;font-size:15px;border-radius:6px;border:1px solid #ccc}
+.container{max-width:1000px;margin:auto;padding:20px}
+input,select,button{width:100%;padding:10px;margin:8px 0;font-size:15px;border-radius:6px;border:1px solid #ccc}
 button{background:#0d47a1;color:white;border:none;cursor:pointer}
 button:hover{opacity:0.9}
 .card{background:white;padding:15px;margin-top:20px;border-radius:8px;box-shadow:0 4px 10px rgba(0,0,0,0.1)}
-.section-title{font-size:18px;font-weight:bold;margin-top:10px}
+.section-title{font-size:18px;font-weight:bold;margin-bottom:8px}
 .hidden{display:none}
 .price{float:right;font-weight:bold;color:#0d47a1}
 .total{font-size:20px;font-weight:bold;margin-top:10px}
-.badge{background:#e3f2fd;padding:4px 8px;border-radius:5px;font-size:12px}
 </style>
 </head>
 
 <body>
 
-<header>Easy Travel Planner — Premium</header>
+<header>Easy Travel Planner — Global Edition</header>
 
 <div class="container" id="pantalla1">
 
 <h3>Planifica tu viaje</h3>
 
 <input type="text" id="origen" placeholder="Desde dónde sales">
-<input type="text" id="destino" placeholder="Destino (Roma, Paris, Nueva York)">
+<input type="text" id="destino" placeholder="Destino (Roma, Paris, Tokyo...)">
 <input type="date" id="fechaSalida">
 <input type="number" id="dias" placeholder="Número de días">
 <input type="number" id="personas" placeholder="Número de personas">
-
-<select id="tipoViaje">
-<option value="estandar">Tipo de viaje: Estándar</option>
-<option value="aventura">Aventura</option>
-<option value="gastronomico">Gastronómico</option>
-<option value="relax">Relax</option>
-</select>
 
 <button onclick="generarViaje()">Generar Viaje</button>
 
@@ -58,40 +50,180 @@ function normalizar(text){
 return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
 }
 
-const baseDatos={
+function multiplicadorTemporada(fecha){
+let mes=new Date(fecha).getMonth()+1;
+if([6,7,8].includes(mes)) return 1.35;
+if([4,5,9,10].includes(mes)) return 1.15;
+return 0.9;
+}
+
+/* ======================================================
+   BASE DE CIUDADES AMPLIADA
+   (10 países más visitados + capitales mundiales)
+====================================================== */
+
+const ciudadesPrincipales = {
+
 roma:{
+pais:"Italia",
 actividades:[
 [
-{nombre:"Coliseo",precio:25,zona:"Coliseo"},
-{nombre:"Foro Romano",precio:18,zona:"Coliseo"},
+{nombre:"Coliseo",precio:25,zona:"Centro"},
+{nombre:"Foro Romano",precio:18,zona:"Centro"},
 {nombre:"Plaza Venecia",precio:0,zona:"Centro"}
 ],
 [
 {nombre:"Museos Vaticanos",precio:30,zona:"Vaticano"},
 {nombre:"Basílica de San Pedro",precio:0,zona:"Vaticano"},
 {nombre:"Castillo Sant'Angelo",precio:20,zona:"Vaticano"}
-],
-[
-{nombre:"Panteón",precio:5,zona:"Centro"},
-{nombre:"Plaza de España",precio:0,zona:"Centro"},
-{nombre:"Villa Borghese",precio:0,zona:"Borghese"}
 ]
 ],
 restaurantes:{
-"Coliseo":"La Taverna dei Fori Imperiali",
-"Centro":"Ristorante Aroma",
-"Vaticano":"Il Sorpasso",
-"Borghese":"Ristorante Nino"
+"Centro":"La Taverna dei Fori Imperiali",
+"Vaticano":"Il Sorpasso"
+}
+},
+
+paris:{
+pais:"Francia",
+actividades:[
+[
+{nombre:"Torre Eiffel",precio:28,zona:"Eiffel"},
+{nombre:"Arco del Triunfo",precio:16,zona:"Champs"},
+{nombre:"Campos Elíseos",precio:0,zona:"Champs"}
+],
+[
+{nombre:"Museo del Louvre",precio:20,zona:"Louvre"},
+{nombre:"Notre Dame",precio:0,zona:"Cité"}
+]
+],
+restaurantes:{
+"Eiffel":"Le Jules Verne",
+"Champs":"L'Atelier de Joël Robuchon",
+"Louvre":"Café Marly",
+"Cité":"Au Vieux Paris d'Arcole"
+}
+},
+
+madrid:{
+pais:"España",
+actividades:[
+[
+{nombre:"Museo del Prado",precio:15,zona:"Centro"},
+{nombre:"Parque del Retiro",precio:0,zona:"Centro"},
+{nombre:"Puerta del Sol",precio:0,zona:"Centro"}
+]
+],
+restaurantes:{
+"Centro":"Botín"
+}
+},
+
+tokyo:{
+pais:"Japón",
+actividades:[
+[
+{nombre:"Templo Senso-ji",precio:0,zona:"Asakusa"},
+{nombre:"Cruce Shibuya",precio:0,zona:"Shibuya"},
+{nombre:"Tokyo Skytree",precio:18,zona:"Sumida"}
+]
+],
+restaurantes:{
+"Asakusa":"Daikokuya Tempura",
+"Shibuya":"Uobei Sushi",
+"Sumida":"Sky Restaurant 634"
+}
+},
+
+nuevayork:{
+pais:"Estados Unidos",
+actividades:[
+[
+{nombre:"Estatua de la Libertad",precio:30,zona:"Manhattan"},
+{nombre:"Central Park",precio:0,zona:"Manhattan"},
+{nombre:"Empire State Building",precio:44,zona:"Midtown"}
+]
+],
+restaurantes:{
+"Manhattan":"The River Café",
+"Midtown":"Carmine's Italian Restaurant"
+}
+},
+
+londres:{
+pais:"Reino Unido",
+actividades:[
+[
+{nombre:"London Eye",precio:32,zona:"Westminster"},
+{nombre:"Big Ben",precio:0,zona:"Westminster"},
+{nombre:"Torre de Londres",precio:29,zona:"Tower"}
+]
+],
+restaurantes:{
+"Westminster":"The Ivy",
+"Tower":"Coppa Club Tower Bridge"
+}
+},
+
+bangkok:{
+pais:"Tailandia",
+actividades:[
+[
+{nombre:"Gran Palacio",precio:15,zona:"Centro"},
+{nombre:"Wat Pho",precio:6,zona:"Centro"}
+]
+],
+restaurantes:{
+"Centro":"Thip Samai"
+}
+},
+
+estambul:{
+pais:"Turquía",
+actividades:[
+[
+{nombre:"Santa Sofía",precio:0,zona:"Sultanahmet"},
+{nombre:"Mezquita Azul",precio:0,zona:"Sultanahmet"},
+{nombre:"Gran Bazar",precio:0,zona:"Centro"}
+]
+],
+restaurantes:{
+"Sultanahmet":"Seven Hills Restaurant",
+"Centro":"Hamdi Restaurant"
+}
+},
+
+dubai:{
+pais:"Emiratos Árabes",
+actividades:[
+[
+{nombre:"Burj Khalifa",precio:40,zona:"Downtown"},
+{nombre:"Dubai Mall",precio:0,zona:"Downtown"}
+]
+],
+restaurantes:{
+"Downtown":"At.mosphere"
+}
+},
+
+singapur:{
+pais:"Singapur",
+actividades:[
+[
+{nombre:"Marina Bay Sands SkyPark",precio:25,zona:"Marina"},
+{nombre:"Gardens by the Bay",precio:15,zona:"Marina"}
+]
+],
+restaurantes:{
+"Marina":"CE LA VI"
 }
 }
+
 };
 
-function multiplicadorTemporada(fecha){
-let mes=new Date(fecha).getMonth()+1;
-if([6,7,8].includes(mes)) return 1.3;
-if([4,5,9,10].includes(mes)) return 1.1;
-return 0.9;
-}
+/* ======================================================
+   GENERADOR
+====================================================== */
 
 function generarViaje(){
 
@@ -101,14 +233,13 @@ let destino=normalizar(destinoOriginal);
 let fecha=document.getElementById("fechaSalida").value;
 let dias=parseInt(document.getElementById("dias").value);
 let personas=parseInt(document.getElementById("personas").value);
-let tipo=document.getElementById("tipoViaje").value;
 
 if(!origen||!destino||!fecha||!dias||!personas){
 alert("Completa todos los campos");
 return;
 }
 
-let ciudad=baseDatos[destino];
+let ciudad=ciudadesPrincipales[destino];
 let mult=multiplicadorTemporada(fecha);
 let html="";
 let totalActividades=0;
@@ -119,72 +250,71 @@ html+=`<div class="card"><div class="section-title">Día ${i+1}</div>`;
 
 if(i === dias-1){
 
-let precioCena=40*personas;
+let restauranteFinal="Restaurante Local";
+if(ciudad){
+let zonas=Object.keys(ciudad.restaurantes);
+restauranteFinal=ciudad.restaurantes[zonas[0]];
+}
+
+let precioCena=45*personas;
 totalActividades+=precioCena;
 
 html+=`
-<p>10:00 Día libre para explorar la ciudad <span class="badge">Libre</span></p>
-`;
-
-if(tipo==="aventura"){
-html+=`<p>Opcional: Tour en bicicleta €${25*personas}</p>`;
-}
-if(tipo==="gastronomico"){
-html+=`<p>Opcional: Tour gastronómico €${60*personas}</p>`;
-}
-if(tipo==="relax"){
-html+=`<p>Opcional: Spa urbano €${50*personas}</p>`;
-}
-
-html+=`
-<p>21:00 Cena especial de despedida €${precioCena}</p>
+<p>10:00 Día libre para explorar la ciudad</p>
+<p>21:00 Cena en ${restauranteFinal}
+<span class="price">€${precioCena}</span></p>
 `;
 
 }else if(ciudad){
 
 let bloque=ciudad.actividades[i % ciudad.actividades.length];
 let hora=10;
+let ultimaZona="Centro";
 
 bloque.forEach(act=>{
 let precioFinal=act.precio*personas*mult;
 totalActividades+=precioFinal;
+ultimaZona=act.zona;
 
 html+=`
 <p>${hora}:00 ${act.nombre}
 <span class="price">€${Math.round(precioFinal)}</span></p>
 `;
+
 hora+=3;
 });
 
-let precioCena=40*personas;
+let restaurante=ciudad.restaurantes[ultimaZona] || Object.values(ciudad.restaurantes)[0];
+let precioCena=45*personas;
 totalActividades+=precioCena;
 
 html+=`
-<p>21:00 Cena en restaurante recomendado
+<p>21:00 Cena en ${restaurante}
 <span class="price">€${precioCena}</span></p>
 `;
 
 }else{
 
-let precioCena=30*personas;
+let precioCena=35*personas;
 totalActividades+=precioCena;
 
 html+=`
-<p>10:00 Tour centro histórico</p>
+<p>10:00 Recorrido centro histórico</p>
 <p>13:00 Museo principal</p>
 <p>17:00 Zona emblemática</p>
-<p>21:00 Cena restaurante local €${precioCena}</p>
+<p>21:00 Cena restaurante local
+<span class="price">€${precioCena}</span></p>
 `;
 }
 
 html+=`</div>`;
 }
 
-let hotel=120*dias*personas*mult;
-let comida=40*dias*personas;
-let transporte=25*dias*personas;
-let vuelo=300*personas*mult;
-let totalFinal=hotel+comida+transporte+vuelo+totalActividades;
+let hotel=140*dias*personas*mult;
+let transporte=30*dias*personas;
+let vuelo=320*personas*mult;
+
+let totalFinal=hotel+transporte+vuelo+totalActividades;
 
 document.getElementById("pantalla1").classList.add("hidden");
 document.getElementById("pantalla2").classList.remove("hidden");
@@ -198,9 +328,8 @@ html+
 <div class="card">
 <h3>Resumen de Costes</h3>
 <p>Hotel: €${Math.round(hotel)}</p>
-<p>Comida base: €${Math.round(comida)}</p>
 <p>Transporte: €${Math.round(transporte)}</p>
-<p>Vuelo: €${Math.round(vuelo)}</p>
+<p>Vuelo estimado: €${Math.round(vuelo)}</p>
 <p class="total">TOTAL ESTIMADO: €${Math.round(totalFinal)}</p>
 </div>
 `;
@@ -216,4 +345,3 @@ document.getElementById("pantalla1").classList.remove("hidden");
 
 </body>
 </html>
-
