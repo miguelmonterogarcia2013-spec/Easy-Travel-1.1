@@ -9,7 +9,7 @@
 body{margin:0;font-family:Arial;background:#eef1f7}
 header{background:#0d47a1;color:white;padding:15px;text-align:center;font-size:22px}
 .container{max-width:900px;margin:auto;padding:20px}
-input,button{width:100%;padding:10px;margin:8px 0;font-size:15px;border-radius:6px;border:1px solid #ccc}
+input,button,select{width:100%;padding:10px;margin:8px 0;font-size:15px;border-radius:6px;border:1px solid #ccc}
 button{background:#0d47a1;color:white;border:none;cursor:pointer}
 button:hover{opacity:0.9}
 .card{background:white;padding:15px;margin-top:20px;border-radius:8px;box-shadow:0 4px 10px rgba(0,0,0,0.1)}
@@ -17,6 +17,7 @@ button:hover{opacity:0.9}
 .hidden{display:none}
 .price{float:right;font-weight:bold;color:#0d47a1}
 .total{font-size:20px;font-weight:bold;margin-top:10px}
+.badge{background:#e3f2fd;padding:4px 8px;border-radius:5px;font-size:12px}
 </style>
 </head>
 
@@ -34,6 +35,13 @@ button:hover{opacity:0.9}
 <input type="number" id="dias" placeholder="Número de días">
 <input type="number" id="personas" placeholder="Número de personas">
 
+<select id="tipoViaje">
+<option value="estandar">Tipo de viaje: Estándar</option>
+<option value="aventura">Aventura</option>
+<option value="gastronomico">Gastronómico</option>
+<option value="relax">Relax</option>
+</select>
+
 <button onclick="generarViaje()">Generar Viaje</button>
 
 </div>
@@ -46,14 +54,11 @@ button:hover{opacity:0.9}
 
 <script>
 
-// ===== NORMALIZAR =====
 function normalizar(text){
 return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
 }
 
-// ===== BASE DE DATOS =====
 const baseDatos={
-
 roma:{
 actividades:[
 [
@@ -78,63 +83,9 @@ restaurantes:{
 "Vaticano":"Il Sorpasso",
 "Borghese":"Ristorante Nino"
 }
-},
-
-paris:{
-actividades:[
-[
-{nombre:"Torre Eiffel",precio:28,zona:"Eiffel"},
-{nombre:"Campos Elíseos",precio:0,zona:"Champs"},
-{nombre:"Arco del Triunfo",precio:16,zona:"Champs"}
-],
-[
-{nombre:"Museo del Louvre",precio:20,zona:"Louvre"},
-{nombre:"Jardín de las Tullerías",precio:0,zona:"Louvre"},
-{nombre:"Notre Dame",precio:0,zona:"Cité"}
-],
-[
-{nombre:"Montmartre",precio:0,zona:"Montmartre"},
-{nombre:"Sacré-Cœur",precio:0,zona:"Montmartre"}
-]
-],
-restaurantes:{
-"Eiffel":"Le Jules Verne",
-"Champs":"L'Atelier de Joël Robuchon",
-"Louvre":"Café Marly",
-"Cité":"Au Vieux Paris d'Arcole",
-"Montmartre":"La Maison Rose"
 }
-},
-
-"nueva york":{
-actividades:[
-[
-{nombre:"Estatua de la Libertad",precio:30,zona:"Lower Manhattan"},
-{nombre:"Wall Street",precio:0,zona:"Lower Manhattan"},
-{nombre:"One World Observatory",precio:35,zona:"Lower Manhattan"}
-],
-[
-{nombre:"Central Park",precio:0,zona:"Manhattan"},
-{nombre:"Museo MET",precio:25,zona:"Manhattan"},
-{nombre:"Quinta Avenida",precio:0,zona:"Manhattan"}
-],
-[
-{nombre:"Empire State Building",precio:44,zona:"Midtown"},
-{nombre:"High Line",precio:0,zona:"Chelsea"},
-{nombre:"Chelsea Market",precio:0,zona:"Chelsea"}
-]
-],
-restaurantes:{
-"Lower Manhattan":"Fraunces Tavern",
-"Manhattan":"The River Café",
-"Midtown":"Carmine's Italian Restaurant",
-"Chelsea":"Cookshop"
-}
-}
-
 };
 
-// ===== TEMPORADA =====
 function multiplicadorTemporada(fecha){
 let mes=new Date(fecha).getMonth()+1;
 if([6,7,8].includes(mes)) return 1.3;
@@ -142,7 +93,6 @@ if([4,5,9,10].includes(mes)) return 1.1;
 return 0.9;
 }
 
-// ===== GENERAR VIAJE =====
 function generarViaje(){
 
 let origen=document.getElementById("origen").value;
@@ -151,6 +101,7 @@ let destino=normalizar(destinoOriginal);
 let fecha=document.getElementById("fechaSalida").value;
 let dias=parseInt(document.getElementById("dias").value);
 let personas=parseInt(document.getElementById("personas").value);
+let tipo=document.getElementById("tipoViaje").value;
 
 if(!origen||!destino||!fecha||!dias||!personas){
 alert("Completa todos los campos");
@@ -166,24 +117,33 @@ for(let i=0;i<dias;i++){
 
 html+=`<div class="card"><div class="section-title">Día ${i+1}</div>`;
 
-// ===== ÚLTIMO DÍA SIEMPRE LIBRE =====
 if(i === dias-1){
 
-let restauranteFinal = ciudad ? Object.values(ciudad.restaurantes)[0] : "Restaurante Local";
 let precioCena=40*personas;
 totalActividades+=precioCena;
 
 html+=`
-<p>10:00 Día libre para explorar a tu ritmo</p>
-<p>21:00 Cena en ${restauranteFinal}
-<span class="price">€${precioCena}</span></p>
+<p>10:00 Día libre para explorar la ciudad <span class="badge">Libre</span></p>
+`;
+
+if(tipo==="aventura"){
+html+=`<p>Opcional: Tour en bicicleta €${25*personas}</p>`;
+}
+if(tipo==="gastronomico"){
+html+=`<p>Opcional: Tour gastronómico €${60*personas}</p>`;
+}
+if(tipo==="relax"){
+html+=`<p>Opcional: Spa urbano €${50*personas}</p>`;
+}
+
+html+=`
+<p>21:00 Cena especial de despedida €${precioCena}</p>
 `;
 
 }else if(ciudad){
 
 let bloque=ciudad.actividades[i % ciudad.actividades.length];
 let hora=10;
-let ultimaZona="Centro";
 
 bloque.forEach(act=>{
 let precioFinal=act.precio*personas*mult;
@@ -193,17 +153,14 @@ html+=`
 <p>${hora}:00 ${act.nombre}
 <span class="price">€${Math.round(precioFinal)}</span></p>
 `;
-
 hora+=3;
-ultimaZona=act.zona;
 });
 
-let restaurante=ciudad.restaurantes[ultimaZona] || "Restaurante Local";
 let precioCena=40*personas;
 totalActividades+=precioCena;
 
 html+=`
-<p>21:00 Cena en ${restaurante}
+<p>21:00 Cena en restaurante recomendado
 <span class="price">€${precioCena}</span></p>
 `;
 
@@ -216,7 +173,7 @@ html+=`
 <p>10:00 Tour centro histórico</p>
 <p>13:00 Museo principal</p>
 <p>17:00 Zona emblemática</p>
-<p>21:00 Cena restaurante local <span class="price">€${precioCena}</span></p>
+<p>21:00 Cena restaurante local €${precioCena}</p>
 `;
 }
 
@@ -258,4 +215,5 @@ document.getElementById("pantalla1").classList.remove("hidden");
 </script>
 
 </body>
+</html>
 
