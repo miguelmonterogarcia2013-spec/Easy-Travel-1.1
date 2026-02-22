@@ -1,201 +1,150 @@
-const express = require("express");
-
-const app = express();
-app.use(express.json());
-
-const PORT = 5000;
-
-/* ===================================================
-   BASE INTERNA GLOBAL (SIN APIs)
-=================================================== */
-
-const restaurantesBase = [
-  "Hard Rock Cafe",
-  "La Tagliatella",
-  "Sushi Samba",
-  "Nusr-Et Steakhouse",
-  "The Cheesecake Factory",
-  "Café de Paris",
-  "Ristorante Da Vinci",
-  "El Gaucho",
-  "Din Tai Fung",
-  "Five Guys"
-];
-
-const actividadesBase = [
-  "Tour guiado por el centro histórico",
-  "Visita al museo principal de la ciudad",
-  "Recorrido panorámico en bus turístico",
-  "Visita a la catedral principal",
-  "Paseo por el barrio antiguo",
-  "Entrada al mirador más famoso",
-  "Visita al mercado tradicional",
-  "Tour cultural con guía local",
-  "Paseo por parque emblemático",
-  "Experiencia gastronómica local"
-];
-
-/* ===================================================
-   FUNCIONES DE PRECIO
-=================================================== */
-
-function estimarVuelo(ciudad, personas){
-  const base = 300;
-  return Math.round(base * personas);
-}
-
-function estimarHotel(dias, personas){
-  const precioNoche = 120;
-  return dias * precioNoche * personas;
-}
-
-function precioActividad(personas){
-  return 25 * personas;
-}
-
-function precioCena(personas){
-  return 40 * personas;
-}
-
-/* ===================================================
-   API PRINCIPAL
-=================================================== */
-
-app.post("/api/plan", (req, res) => {
-
-  const { ciudad, dias, personas } = req.body;
-
-  if(!ciudad || !dias || !personas){
-    return res.status(400).json({ error: "Faltan datos" });
-  }
-
-  const vuelo = estimarVuelo(ciudad, personas);
-  const hotel = estimarHotel(dias, personas);
-
-  res.json({
-    vuelo,
-    hotel,
-    actividades: actividadesBase,
-    restaurantes: restaurantesBase
-  });
-});
-
-/* ===================================================
-   FRONTEND
-=================================================== */
-
-app.get("/", (req, res) => {
-
-res.send(`
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Easy Travel Planner Global</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Easy Travel Planner</title>
+
 <style>
-body{font-family:Arial;background:#f4f6fa;padding:20px}
-input,button{width:100%;padding:10px;margin:8px 0}
-.card{background:white;padding:15px;margin-top:15px;border-radius:8px}
-.price{float:right;font-weight:bold;color:#0d47a1}
-.total{font-size:18px;font-weight:bold;margin-top:10px}
-h2{color:#0d47a1}
+body{
+  font-family: Arial, sans-serif;
+  background:#f4f6fa;
+  margin:0;
+  padding:20px;
+}
+.container{
+  max-width:900px;
+  margin:auto;
+}
+h1{
+  text-align:center;
+  color:#0d47a1;
+}
+.card{
+  background:white;
+  padding:15px;
+  margin-top:15px;
+  border-radius:8px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.1);
+}
+button{
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  background:#0d47a1;
+  color:white;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
+input{
+  width:100%;
+  padding:10px;
+  margin-top:10px;
+}
+.price{
+  float:right;
+  font-weight:bold;
+}
+.total{
+  font-size:18px;
+  font-weight:bold;
+  margin-top:10px;
+}
 </style>
 </head>
 <body>
 
-<h2>Easy Travel Planner Global 🌍</h2>
+<div class="container">
 
-<input type="text" id="destino" placeholder="Ciudad destino">
-<input type="number" id="dias" placeholder="Días">
-<input type="number" id="personas" placeholder="Personas">
+<h1>🌍 Easy Travel Planner</h1>
 
-<button onclick="generar()">Generar Itinerario</button>
+<input type="text" id="city" placeholder="Ciudad destino">
+<input type="number" id="days" placeholder="Días">
+<input type="number" id="people" placeholder="Personas">
 
-<div id="resultado"></div>
+<button onclick="generate()">Generar viaje</button>
+
+<div id="result"></div>
+
+</div>
 
 <script>
 
-async function generar(){
+const activities = [
+"Tour por el centro histórico",
+"Visita al museo principal",
+"Paseo por el barrio antiguo",
+"Mirador panorámico",
+"Mercado tradicional",
+"Tour cultural local"
+];
 
-const ciudad = document.getElementById("destino").value;
-const dias = parseInt(document.getElementById("dias").value);
-const personas = parseInt(document.getElementById("personas").value);
+const restaurants = [
+"Hard Rock Cafe",
+"La Tagliatella",
+"Sushi Samba",
+"Nusr-Et Steakhouse",
+"Din Tai Fung"
+];
 
-if(!ciudad || !dias || !personas){
-  alert("Completa todos los campos");
-  return;
+function generate(){
+
+const city = document.getElementById("city").value;
+const days = parseInt(document.getElementById("days").value);
+const people = parseInt(document.getElementById("people").value);
+
+if(!city || !days || !people){
+alert("Completa todos los campos");
+return;
 }
 
-const response = await fetch("/api/plan", {
-  method: "POST",
-  headers: {"Content-Type": "application/json"},
-  body: JSON.stringify({ ciudad, dias, personas })
-});
-
-const data = await response.json();
-
+let total = 0;
 let html = "";
-let totalActividades = 0;
 
-for(let i=0;i<dias;i++){
+for(let i=0;i<days;i++){
 
-html += '<div class="card"><h3>Día '+(i+1)+' - '+ciudad+'</h3>';
+html += '<div class="card">';
+html += '<h3>Día '+(i+1)+' - '+city+'</h3>';
 
-if(i === dias-1){
+if(i === days-1){
 
-html += '<p>10:00 Día libre para explorar la ciudad</p>';
-
-html += '<p>21:00 Cena en '+data.restaurantes[i % data.restaurantes.length]+
-'<span class="price">€'+(40*personas)+'</span></p>';
-
-totalActividades += 40*personas;
+html += '<p>10:00 Día libre</p>';
+let dinner = 40 * people;
+html += '<p>21:00 Cena en '+restaurants[i%restaurants.length]+' <span class="price">€'+dinner+'</span></p>';
+total += dinner;
 
 }else{
 
-let horas = ["10:00","13:00","16:00","18:30"];
+let times = ["10:00","13:00","16:00"];
 
-for(let j=0;j<4;j++){
-
-let actividad = data.actividades[(i*4+j) % data.actividades.length];
-
-html += '<p>'+horas[j]+' '+actividad+
-'<span class="price">€'+(25*personas)+'</span></p>';
-
-totalActividades += 25*personas;
+for(let j=0;j<3;j++){
+let price = 25 * people;
+html += '<p>'+times[j]+' '+activities[(i+j)%activities.length]+' <span class="price">€'+price+'</span></p>';
+total += price;
 }
 
-html += '<p>21:00 Cena en '+data.restaurantes[i % data.restaurantes.length]+
-'<span class="price">€'+(40*personas)+'</span></p>';
-
-totalActividades += 40*personas;
+let dinner = 40 * people;
+html += '<p>21:00 Cena en '+restaurants[i%restaurants.length]+' <span class="price">€'+dinner+'</span></p>';
+total += dinner;
 }
 
 html += '</div>';
 }
+
+let flight = 300 * people;
+let hotel = 120 * days * people;
 
 html += '<div class="card">';
-html += '<p>Vuelo estimado: €'+data.vuelo+'</p>';
-html += '<p>Hotel estimado: €'+data.hotel+'</p>';
-html += '<p class="total">TOTAL APROXIMADO: €'+
-(totalActividades + data.vuelo + data.hotel)+
-'</p>';
+html += '<p>Vuelo estimado: €'+flight+'</p>';
+html += '<p>Hotel estimado: €'+hotel+'</p>';
+html += '<p class="total">TOTAL: €'+(total+flight+hotel)+'</p>';
 html += '</div>';
 
-document.getElementById("resultado").innerHTML = html;
-
+document.getElementById("result").innerHTML = html;
 }
 
 </script>
+
 </body>
 </html>
-`);
-
-});
-
-/* ===================================================
-   INICIAR SERVIDOR
-=================================================== */
-
-app.listen(PORT, () => {
-  console.log("Servidor activo en http://localhost:5000");
-});
