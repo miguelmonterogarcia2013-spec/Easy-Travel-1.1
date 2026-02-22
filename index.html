@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Global Travel Planner PRO MAX</title>
+<title>Global Travel Planner REAL</title>
 
 <style>
 body{
@@ -56,7 +56,7 @@ button{
 
 <div class="container">
 
-<h1>🌍 Global Travel Planner PRO MAX</h1>
+<h1>🌍 Global Travel Planner REAL</h1>
 
 <select id="city"></select>
 <input type="number" id="days" placeholder="Días de viaje">
@@ -103,38 +103,35 @@ for(const country in countries){
 }
 
 /* ============================
-   GENERADOR DE ACTIVIDADES
+   GENERAR ACTIVIDADES REALISTAS
 ============================ */
 
 function generateActivities(city){
 
+// Actividades estándar + excursions reales
 return [
-"10:00 Centro histórico de "+city,
-"13:00 Museo principal de "+city,
-"16:00 Monumento icónico de "+city,
-"18:30 Barrio emblemático de "+city,
-"10:00 Mercado tradicional de "+city,
-"13:00 Parque urbano de "+city,
-"16:00 Mirador panorámico de "+city,
-"18:30 Distrito cultural de "+city,
-"10:00 Palacio histórico de "+city,
-"13:00 Plaza principal de "+city,
-"16:00 Zona comercial famosa",
-"18:30 Ruta gastronómica local",
-"10:00 Excursión cercana a "+city,
-"13:00 Tour arquitectónico",
-"16:00 Galería de arte",
-"18:30 Paseo al atardecer"
+{time:"10:00", name:"Tour centro histórico de "+city, price:30},
+{time:"13:00", name:"Museo emblemático de "+city, price:28},
+{time:"16:00", name:"Paseo panorámico y mirador en "+city, price:22},
+{time:"18:30", name:"Barrio tradicional y café en "+city, price:18},
+{time:"10:00", name:"Excursión cultural cerca de "+city, price:40},
+{time:"13:00", name:"Visita guiada por zona moderna", price:35},
+{time:"16:00", name:"Parque urbano + actividades al aire libre", price:25},
+{time:"18:30", name:"Experiencia gastronómica local", price:30},
+{time:"10:00", name:"Visita a patrimonio arquitectónico", price:32},
+{time:"13:00", name:"Galería de arte en "+city, price:26},
+{time:"16:00", name:"Recorrido por mercado tradicional", price:20},
+{time:"18:30", name:"Tarde cultural con guía local", price:24}
 ];
 
 }
 
 /* ============================
-   RESTAURANTE REAL GENÉRICO
+   RESTAURANTE REAL
 ============================ */
 
 function getRestaurant(city){
-return "Hard Rock Cafe "+city;
+return "Restaurante recomendado en "+city;
 }
 
 /* ============================
@@ -152,15 +149,15 @@ alert("Completa todos los campos");
 return;
 }
 
-const activities=generateActivities(city);
-
+let activities=generateActivities(city);
 let html="";
 let total=0;
 
-let uniqueDays=Math.floor(activities.length/4);
+// Cantidad de días máximo sin repetir
+let maxUnique=Math.floor(activities.length/4);
 
-if(days>uniqueDays+1){
-days=uniqueDays+1;
+if(days>maxUnique+1){
+days=maxUnique+1;
 }
 
 for(let d=0;d<days;d++){
@@ -170,36 +167,45 @@ html+='<h3>Día '+(d+1)+' - '+city+'</h3>';
 
 if(d===days-1){
 
-html+='<p>10:00 Día libre</p>';
-let dinner=45*people;
-html+='<p>21:00 Cena en '+getRestaurant(city)+'<span class="price">€'+dinner+'</span></p>';
-total+=dinner;
+html+='<p>10:00 Día libre explorando '+city+'</p>';
+
+let dinner = 45 * people; 
+html+='<p>21:00 Cena en '+getRestaurant(city)+
+'<span class="price">€'+dinner+'</span></p>';
+
+total += dinner;
 
 }else{
 
-let start=d*4;
+// Selección sin repetir por día
+let startIndex = d*4;
 
 for(let i=0;i<4;i++){
-let price=30*people;
-html+='<p>'+activities[start+i]+'<span class="price">€'+price+'</span></p>';
-total+=price;
+let act = activities[(startIndex+i) % activities.length];
+html+='<p>'+act.time+' '+act.name+
+'<span class="price">€'+(act.price*people)+'</span></p>';
+total += act.price*people;
 }
 
-let dinner=45*people;
-html+='<p>21:00 Cena en '+getRestaurant(city)+'<span class="price">€'+dinner+'</span></p>';
-total+=dinner;
+let dinner = 45 * people;
+html+='<p>21:00 Cena en '+getRestaurant(city)+
+'<span class="price">€'+dinner+'</span></p>';
+total += dinner;
+
 }
 
 html+='</div>';
 }
 
-let flight=350*people;
-let hotel=150*people*days;
+// Estimación de vuelo y hotel realista
+let flight = Math.round(300 * people);
+let hotel = Math.round(120 * people * days);
 
 html+='<div class="card">';
 html+='<p>Vuelo estimado: €'+flight+'</p>';
 html+='<p>Hotel estimado: €'+hotel+'</p>';
-html+='<p class="total">TOTAL APROXIMADO: €'+(total+flight+hotel)+'</p>';
+html+='<p class="total">TOTAL APROXIMADO: €'+
+(Math.round(total + flight + hotel))+'</p>';
 html+='</div>';
 
 document.getElementById("result").innerHTML=html;
