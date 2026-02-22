@@ -3,145 +3,342 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Easy Travel Planner</title>
+<title>Easy Travel Planner Global</title>
 
 <style>
-body{
-  font-family: Arial, sans-serif;
-  background:#f4f6fa;
-  margin:0;
-  padding:20px;
-}
-.container{
-  max-width:900px;
-  margin:auto;
-}
-h1{
-  text-align:center;
-  color:#0d47a1;
-}
-.card{
-  background:white;
-  padding:15px;
-  margin-top:15px;
-  border-radius:8px;
-  box-shadow:0 2px 6px rgba(0,0,0,0.1);
-}
-button{
-  width:100%;
-  padding:12px;
-  margin-top:10px;
-  background:#0d47a1;
-  color:white;
-  border:none;
-  border-radius:6px;
-  cursor:pointer;
-}
-input{
-  width:100%;
-  padding:10px;
-  margin-top:10px;
-}
-.price{
-  float:right;
-  font-weight:bold;
-}
-.total{
-  font-size:18px;
-  font-weight:bold;
-  margin-top:10px;
-}
+body{margin:0;font-family:Arial;background:#eef1f7}
+header{background:#0d47a1;color:white;padding:15px;text-align:center;font-size:22px}
+.container{max-width:1000px;margin:auto;padding:20px}
+input,select,button{width:100%;padding:10px;margin:8px 0;font-size:15px;border-radius:6px;border:1px solid #ccc}
+button{background:#0d47a1;color:white;border:none;cursor:pointer}
+button:hover{opacity:0.9}
+.card{background:white;padding:15px;margin-top:20px;border-radius:8px;box-shadow:0 4px 10px rgba(0,0,0,0.1)}
+.section-title{font-size:18px;font-weight:bold;margin-bottom:8px}
+.hidden{display:none}
+.price{float:right;font-weight:bold;color:#0d47a1}
+.total{font-size:20px;font-weight:bold;margin-top:10px}
 </style>
 </head>
+
 <body>
 
-<div class="container">
+<header>Easy Travel Planner — Global Edition</header>
 
-<h1>🌍 Easy Travel Planner</h1>
+<div class="container" id="pantalla1">
 
-<input type="text" id="city" placeholder="Ciudad destino">
-<input type="number" id="days" placeholder="Días">
-<input type="number" id="people" placeholder="Personas">
+<h3>Planifica tu viaje</h3>
 
-<button onclick="generate()">Generar viaje</button>
+<input type="text" id="origen" placeholder="Desde dónde sales">
+<input type="text" id="destino" placeholder="Destino (Roma, Paris, Tokyo...)">
+<input type="date" id="fechaSalida">
+<input type="number" id="dias" placeholder="Número de días">
+<input type="number" id="personas" placeholder="Número de personas">
 
-<div id="result"></div>
+<button onclick="generarViaje()">Generar Viaje</button>
 
+</div>
+
+<div class="container hidden" id="pantalla2">
+<h2 id="tituloViaje"></h2>
+<div id="resultado"></div>
+<button onclick="volver()">← Volver</button>
 </div>
 
 <script>
 
-const activities = [
-"Tour por el centro histórico",
-"Visita al museo principal",
-"Paseo por el barrio antiguo",
-"Mirador panorámico",
-"Mercado tradicional",
-"Tour cultural local"
-];
+function normalizar(text){
+return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
+}
 
-const restaurants = [
-"Hard Rock Cafe",
-"La Tagliatella",
-"Sushi Samba",
-"Nusr-Et Steakhouse",
-"Din Tai Fung"
-];
+function multiplicadorTemporada(fecha){
+let mes=new Date(fecha).getMonth()+1;
+if([6,7,8].includes(mes)) return 1.35;
+if([4,5,9,10].includes(mes)) return 1.15;
+return 0.9;
+}
 
-function generate(){
+/* ======================================================
+   BASE DE CIUDADES AMPLIADA
+   (10 países más visitados + capitales mundiales)
+====================================================== */
 
-const city = document.getElementById("city").value;
-const days = parseInt(document.getElementById("days").value);
-const people = parseInt(document.getElementById("people").value);
+const ciudadesPrincipales = {
 
-if(!city || !days || !people){
+roma:{
+pais:"Italia",
+actividades:[
+[
+{nombre:"Coliseo",precio:25,zona:"Centro"},
+{nombre:"Foro Romano",precio:18,zona:"Centro"},
+{nombre:"Plaza Venecia",precio:0,zona:"Centro"}
+],
+[
+{nombre:"Museos Vaticanos",precio:30,zona:"Vaticano"},
+{nombre:"Basílica de San Pedro",precio:0,zona:"Vaticano"},
+{nombre:"Castillo Sant'Angelo",precio:20,zona:"Vaticano"}
+]
+],
+restaurantes:{
+"Centro":"La Taverna dei Fori Imperiali",
+"Vaticano":"Il Sorpasso"
+}
+},
+
+paris:{
+pais:"Francia",
+actividades:[
+[
+{nombre:"Torre Eiffel",precio:28,zona:"Eiffel"},
+{nombre:"Arco del Triunfo",precio:16,zona:"Champs"},
+{nombre:"Campos Elíseos",precio:0,zona:"Champs"}
+],
+[
+{nombre:"Museo del Louvre",precio:20,zona:"Louvre"},
+{nombre:"Notre Dame",precio:0,zona:"Cité"}
+]
+],
+restaurantes:{
+"Eiffel":"Le Jules Verne",
+"Champs":"L'Atelier de Joël Robuchon",
+"Louvre":"Café Marly",
+"Cité":"Au Vieux Paris d'Arcole"
+}
+},
+
+madrid:{
+pais:"España",
+actividades:[
+[
+{nombre:"Museo del Prado",precio:15,zona:"Centro"},
+{nombre:"Parque del Retiro",precio:0,zona:"Centro"},
+{nombre:"Puerta del Sol",precio:0,zona:"Centro"}
+]
+],
+restaurantes:{
+"Centro":"Botín"
+}
+},
+
+tokyo:{
+pais:"Japón",
+actividades:[
+[
+{nombre:"Templo Senso-ji",precio:0,zona:"Asakusa"},
+{nombre:"Cruce Shibuya",precio:0,zona:"Shibuya"},
+{nombre:"Tokyo Skytree",precio:18,zona:"Sumida"}
+]
+],
+restaurantes:{
+"Asakusa":"Daikokuya Tempura",
+"Shibuya":"Uobei Sushi",
+"Sumida":"Sky Restaurant 634"
+}
+},
+
+nuevayork:{
+pais:"Estados Unidos",
+actividades:[
+[
+{nombre:"Estatua de la Libertad",precio:30,zona:"Manhattan"},
+{nombre:"Central Park",precio:0,zona:"Manhattan"},
+{nombre:"Empire State Building",precio:44,zona:"Midtown"}
+]
+],
+restaurantes:{
+"Manhattan":"The River Café",
+"Midtown":"Carmine's Italian Restaurant"
+}
+},
+
+londres:{
+pais:"Reino Unido",
+actividades:[
+[
+{nombre:"London Eye",precio:32,zona:"Westminster"},
+{nombre:"Big Ben",precio:0,zona:"Westminster"},
+{nombre:"Torre de Londres",precio:29,zona:"Tower"}
+]
+],
+restaurantes:{
+"Westminster":"The Ivy",
+"Tower":"Coppa Club Tower Bridge"
+}
+},
+
+bangkok:{
+pais:"Tailandia",
+actividades:[
+[
+{nombre:"Gran Palacio",precio:15,zona:"Centro"},
+{nombre:"Wat Pho",precio:6,zona:"Centro"}
+]
+],
+restaurantes:{
+"Centro":"Thip Samai"
+}
+},
+
+estambul:{
+pais:"Turquía",
+actividades:[
+[
+{nombre:"Santa Sofía",precio:0,zona:"Sultanahmet"},
+{nombre:"Mezquita Azul",precio:0,zona:"Sultanahmet"},
+{nombre:"Gran Bazar",precio:0,zona:"Centro"}
+]
+],
+restaurantes:{
+"Sultanahmet":"Seven Hills Restaurant",
+"Centro":"Hamdi Restaurant"
+}
+},
+
+dubai:{
+pais:"Emiratos Árabes",
+actividades:[
+[
+{nombre:"Burj Khalifa",precio:40,zona:"Downtown"},
+{nombre:"Dubai Mall",precio:0,zona:"Downtown"}
+]
+],
+restaurantes:{
+"Downtown":"At.mosphere"
+}
+},
+
+singapur:{
+pais:"Singapur",
+actividades:[
+[
+{nombre:"Marina Bay Sands SkyPark",precio:25,zona:"Marina"},
+{nombre:"Gardens by the Bay",precio:15,zona:"Marina"}
+]
+],
+restaurantes:{
+"Marina":"CE LA VI"
+}
+}
+
+};
+
+/* ======================================================
+   GENERADOR
+====================================================== */
+
+function generarViaje(){
+
+let origen=document.getElementById("origen").value;
+let destinoOriginal=document.getElementById("destino").value;
+let destino=normalizar(destinoOriginal);
+let fecha=document.getElementById("fechaSalida").value;
+let dias=parseInt(document.getElementById("dias").value);
+let personas=parseInt(document.getElementById("personas").value);
+
+if(!origen||!destino||!fecha||!dias||!personas){
 alert("Completa todos los campos");
 return;
 }
 
-let total = 0;
-let html = "";
+let ciudad=ciudadesPrincipales[destino];
+let mult=multiplicadorTemporada(fecha);
+let html="";
+let totalActividades=0;
 
-for(let i=0;i<days;i++){
+for(let i=0;i<dias;i++){
 
-html += '<div class="card">';
-html += '<h3>Día '+(i+1)+' - '+city+'</h3>';
+html+=`<div class="card"><div class="section-title">Día ${i+1}</div>`;
 
-if(i === days-1){
+if(i === dias-1){
 
-html += '<p>10:00 Día libre</p>';
-let dinner = 40 * people;
-html += '<p>21:00 Cena en '+restaurants[i%restaurants.length]+' <span class="price">€'+dinner+'</span></p>';
-total += dinner;
+let restauranteFinal="Restaurante Local";
+if(ciudad){
+let zonas=Object.keys(ciudad.restaurantes);
+restauranteFinal=ciudad.restaurantes[zonas[0]];
+}
+
+let precioCena=45*personas;
+totalActividades+=precioCena;
+
+html+=`
+<p>10:00 Día libre para explorar la ciudad</p>
+<p>21:00 Cena en ${restauranteFinal}
+<span class="price">€${precioCena}</span></p>
+`;
+
+}else if(ciudad){
+
+let bloque=ciudad.actividades[i % ciudad.actividades.length];
+let hora=10;
+let ultimaZona="Centro";
+
+bloque.forEach(act=>{
+let precioFinal=act.precio*personas*mult;
+totalActividades+=precioFinal;
+ultimaZona=act.zona;
+
+html+=`
+<p>${hora}:00 ${act.nombre}
+<span class="price">€${Math.round(precioFinal)}</span></p>
+`;
+
+hora+=3;
+});
+
+let restaurante=ciudad.restaurantes[ultimaZona] || Object.values(ciudad.restaurantes)[0];
+let precioCena=45*personas;
+totalActividades+=precioCena;
+
+html+=`
+<p>21:00 Cena en ${restaurante}
+<span class="price">€${precioCena}</span></p>
+`;
 
 }else{
 
-let times = ["10:00","13:00","16:00"];
+let precioCena=35*personas;
+totalActividades+=precioCena;
 
-for(let j=0;j<3;j++){
-let price = 25 * people;
-html += '<p>'+times[j]+' '+activities[(i+j)%activities.length]+' <span class="price">€'+price+'</span></p>';
-total += price;
+html+=`
+<p>10:00 Recorrido centro histórico</p>
+<p>13:00 Museo principal</p>
+<p>17:00 Zona emblemática</p>
+<p>21:00 Cena restaurante local
+<span class="price">€${precioCena}</span></p>
+`;
 }
 
-let dinner = 40 * people;
-html += '<p>21:00 Cena en '+restaurants[i%restaurants.length]+' <span class="price">€'+dinner+'</span></p>';
-total += dinner;
+html+=`</div>`;
 }
 
-html += '</div>';
+let hotel=140*dias*personas*mult;
+let transporte=30*dias*personas;
+let vuelo=320*personas*mult;
+
+let totalFinal=hotel+transporte+vuelo+totalActividades;
+
+document.getElementById("pantalla1").classList.add("hidden");
+document.getElementById("pantalla2").classList.remove("hidden");
+
+document.getElementById("tituloViaje").innerHTML=
+`Viaje ${origen} → ${destinoOriginal} (${dias} días)`;
+
+document.getElementById("resultado").innerHTML=
+html+
+`
+<div class="card">
+<h3>Resumen de Costes</h3>
+<p>Hotel: €${Math.round(hotel)}</p>
+<p>Transporte: €${Math.round(transporte)}</p>
+<p>Vuelo estimado: €${Math.round(vuelo)}</p>
+<p class="total">TOTAL ESTIMADO: €${Math.round(totalFinal)}</p>
+</div>
+`;
+
 }
 
-let flight = 300 * people;
-let hotel = 120 * days * people;
-
-html += '<div class="card">';
-html += '<p>Vuelo estimado: €'+flight+'</p>';
-html += '<p>Hotel estimado: €'+hotel+'</p>';
-html += '<p class="total">TOTAL: €'+(total+flight+hotel)+'</p>';
-html += '</div>';
-
-document.getElementById("result").innerHTML = html;
+function volver(){
+document.getElementById("pantalla2").classList.add("hidden");
+document.getElementById("pantalla1").classList.remove("hidden");
 }
 
 </script>
