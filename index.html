@@ -1,253 +1,201 @@
+const express = require("express");
+
+const app = express();
+app.use(express.json());
+
+const PORT = 5000;
+
+/* ===================================================
+   BASE INTERNA GLOBAL (SIN APIs)
+=================================================== */
+
+const restaurantesBase = [
+  "Hard Rock Cafe",
+  "La Tagliatella",
+  "Sushi Samba",
+  "Nusr-Et Steakhouse",
+  "The Cheesecake Factory",
+  "Café de Paris",
+  "Ristorante Da Vinci",
+  "El Gaucho",
+  "Din Tai Fung",
+  "Five Guys"
+];
+
+const actividadesBase = [
+  "Tour guiado por el centro histórico",
+  "Visita al museo principal de la ciudad",
+  "Recorrido panorámico en bus turístico",
+  "Visita a la catedral principal",
+  "Paseo por el barrio antiguo",
+  "Entrada al mirador más famoso",
+  "Visita al mercado tradicional",
+  "Tour cultural con guía local",
+  "Paseo por parque emblemático",
+  "Experiencia gastronómica local"
+];
+
+/* ===================================================
+   FUNCIONES DE PRECIO
+=================================================== */
+
+function estimarVuelo(ciudad, personas){
+  const base = 300;
+  return Math.round(base * personas);
+}
+
+function estimarHotel(dias, personas){
+  const precioNoche = 120;
+  return dias * precioNoche * personas;
+}
+
+function precioActividad(personas){
+  return 25 * personas;
+}
+
+function precioCena(personas){
+  return 40 * personas;
+}
+
+/* ===================================================
+   API PRINCIPAL
+=================================================== */
+
+app.post("/api/plan", (req, res) => {
+
+  const { ciudad, dias, personas } = req.body;
+
+  if(!ciudad || !dias || !personas){
+    return res.status(400).json({ error: "Faltan datos" });
+  }
+
+  const vuelo = estimarVuelo(ciudad, personas);
+  const hotel = estimarHotel(dias, personas);
+
+  res.json({
+    vuelo,
+    hotel,
+    actividades: actividadesBase,
+    restaurantes: restaurantesBase
+  });
+});
+
+/* ===================================================
+   FRONTEND
+=================================================== */
+
+app.get("/", (req, res) => {
+
+res.send(`
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Easy Travel Planner Global PRO</title>
-
+<title>Easy Travel Planner Global</title>
 <style>
-body{margin:0;font-family:Arial;background:#eef1f7}
-header{background:#0d47a1;color:white;padding:15px;text-align:center;font-size:22px}
-.container{max-width:1000px;margin:auto;padding:20px}
-input,button{width:100%;padding:10px;margin:8px 0;font-size:15px;border-radius:6px;border:1px solid #ccc}
-button{background:#0d47a1;color:white;border:none;cursor:pointer}
-button:hover{opacity:0.9}
-.card{background:white;padding:15px;margin-top:20px;border-radius:8px;box-shadow:0 4px 10px rgba(0,0,0,0.1)}
-.section-title{font-size:18px;font-weight:bold;margin-bottom:8px}
-.hidden{display:none}
+body{font-family:Arial;background:#f4f6fa;padding:20px}
+input,button{width:100%;padding:10px;margin:8px 0}
+.card{background:white;padding:15px;margin-top:15px;border-radius:8px}
 .price{float:right;font-weight:bold;color:#0d47a1}
-.total{font-size:20px;font-weight:bold;margin-top:10px}
-.download-btn{background:#2e7d32;margin-top:15px}
+.total{font-size:18px;font-weight:bold;margin-top:10px}
+h2{color:#0d47a1}
 </style>
 </head>
-
 <body>
 
-<header>Easy Travel Planner — Global PRO</header>
+<h2>Easy Travel Planner Global 🌍</h2>
 
-<div class="container" id="pantalla1">
+<input type="text" id="destino" placeholder="Ciudad destino">
+<input type="number" id="dias" placeholder="Días">
+<input type="number" id="personas" placeholder="Personas">
 
-<h3>Planifica tu viaje</h3>
+<button onclick="generar()">Generar Itinerario</button>
 
-<input type="text" id="origen" placeholder="Desde dónde sales">
-<input type="text" id="destino" placeholder="Destino (Roma, Paris, Tokyo...)">
-<input type="date" id="fechaSalida">
-<input type="number" id="dias" placeholder="Número de días">
-<input type="number" id="personas" placeholder="Número de personas">
-
-<button onclick="generarViaje()">Generar Viaje</button>
-
-</div>
-
-<div class="container hidden" id="pantalla2">
-<h2 id="tituloViaje"></h2>
 <div id="resultado"></div>
-<button class="download-btn" onclick="descargarPDF()">Descargar Planning en PDF</button>
-<button onclick="volver()">← Volver</button>
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script>
 
-function normalizar(text){
-return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
+async function generar(){
+
+const ciudad = document.getElementById("destino").value;
+const dias = parseInt(document.getElementById("dias").value);
+const personas = parseInt(document.getElementById("personas").value);
+
+if(!ciudad || !dias || !personas){
+  alert("Completa todos los campos");
+  return;
 }
 
-function multiplicadorTemporada(fecha){
-let mes=new Date(fecha).getMonth()+1;
-if([6,7,8].includes(mes)) return 1.35;
-if([4,5,9,10].includes(mes)) return 1.15;
-return 0.9;
-}
+const response = await fetch("/api/plan", {
+  method: "POST",
+  headers: {"Content-Type": "application/json"},
+  body: JSON.stringify({ ciudad, dias, personas })
+});
 
-/* ======================================================
-   BASE COMPLETA (estructura tipo Roma en TODAS)
-====================================================== */
+const data = await response.json();
 
-const ciudades={
-
-roma:{
-pais:"Italia",
-actividades:[
-[
-{nombre:"Coliseo",precio:25,zona:"Centro"},
-{nombre:"Foro Romano",precio:18,zona:"Centro"},
-{nombre:"Plaza Venecia",precio:0,zona:"Centro"}
-],
-[
-{nombre:"Museos Vaticanos",precio:30,zona:"Vaticano"},
-{nombre:"Basílica de San Pedro",precio:0,zona:"Vaticano"},
-{nombre:"Castillo Sant'Angelo",precio:20,zona:"Vaticano"}
-]
-],
-restaurantes:{
-"Centro":"La Taverna dei Fori Imperiali",
-"Vaticano":"Il Sorpasso"
-}
-},
-
-paris:{
-pais:"Francia",
-actividades:[
-[
-{nombre:"Torre Eiffel",precio:28,zona:"Centro"},
-{nombre:"Arco del Triunfo",precio:16,zona:"Centro"},
-{nombre:"Campos Elíseos",precio:0,zona:"Centro"}
-],
-[
-{nombre:"Museo del Louvre",precio:20,zona:"Louvre"},
-{nombre:"Notre Dame",precio:0,zona:"Louvre"},
-{nombre:"Montmartre",precio:0,zona:"Montmartre"}
-]
-],
-restaurantes:{
-"Centro":"Le Jules Verne",
-"Louvre":"Café Marly",
-"Montmartre":"La Maison Rose"
-}
-},
-
-tokyo:{
-pais:"Japón",
-actividades:[
-[
-{nombre:"Templo Senso-ji",precio:0,zona:"Asakusa"},
-{nombre:"Tokyo Skytree",precio:18,zona:"Sumida"},
-{nombre:"Mercado Tsukiji",precio:0,zona:"Chuo"}
-],
-[
-{nombre:"Cruce Shibuya",precio:0,zona:"Shibuya"},
-{nombre:"Santuario Meiji",precio:0,zona:"Shibuya"},
-{nombre:"Akihabara",precio:0,zona:"Akihabara"}
-]
-],
-restaurantes:{
-"Asakusa":"Daikokuya Tempura",
-"Sumida":"Sky Restaurant 634",
-"Shibuya":"Uobei Sushi",
-"Akihabara":"Gyukatsu Motomura"
-}
-}
-
-};
-
-/* ======================================================
-   GENERADOR
-====================================================== */
-
-let planningTexto="";
-
-function generarViaje(){
-
-let origen=document.getElementById("origen").value;
-let destinoOriginal=document.getElementById("destino").value;
-let destino=normalizar(destinoOriginal);
-let fecha=document.getElementById("fechaSalida").value;
-let dias=parseInt(document.getElementById("dias").value);
-let personas=parseInt(document.getElementById("personas").value);
-
-if(!origen||!destino||!fecha||!dias||!personas){
-alert("Completa todos los campos");
-return;
-}
-
-let ciudad=ciudades[destino];
-if(!ciudad){
-alert("Ciudad no disponible aún.");
-return;
-}
-
-let mult=multiplicadorTemporada(fecha);
-let html="";
-planningTexto=`Viaje ${origen} → ${destinoOriginal}\n\n`;
-let total=0;
+let html = "";
+let totalActividades = 0;
 
 for(let i=0;i<dias;i++){
 
-html+=`<div class="card"><div class="section-title">Día ${i+1}</div>`;
-planningTexto+=`\nDía ${i+1}\n`;
+html += '<div class="card"><h3>Día '+(i+1)+' - '+ciudad+'</h3>';
 
-if(i===dias-1){
+if(i === dias-1){
 
-let restaurante=Object.values(ciudad.restaurantes)[0];
-let precioCena=45*personas;
-total+=precioCena;
+html += '<p>10:00 Día libre para explorar la ciudad</p>';
 
-html+=`
-<p>10:00 Día libre</p>
-<p>21:00 Cena en ${restaurante}
-<span class="price">€${precioCena}</span></p>
-`;
+html += '<p>21:00 Cena en '+data.restaurantes[i % data.restaurantes.length]+
+'<span class="price">€'+(40*personas)+'</span></p>';
 
-planningTexto+=`10:00 Día libre\n21:00 Cena en ${restaurante} €${precioCena}\n`;
+totalActividades += 40*personas;
 
 }else{
 
-let bloque=ciudad.actividades[i % ciudad.actividades.length];
-let hora=10;
-let ultimaZona="Centro";
+let horas = ["10:00","13:00","16:00","18:30"];
 
-bloque.forEach(act=>{
-let precioFinal=Math.round(act.precio*personas*mult);
-total+=precioFinal;
-ultimaZona=act.zona;
+for(let j=0;j<4;j++){
 
-html+=`
-<p>${hora}:00 ${act.nombre}
-<span class="price">€${precioFinal}</span></p>
-`;
+let actividad = data.actividades[(i*4+j) % data.actividades.length];
 
-planningTexto+=`${hora}:00 ${act.nombre} €${precioFinal}\n`;
-hora+=3;
-});
+html += '<p>'+horas[j]+' '+actividad+
+'<span class="price">€'+(25*personas)+'</span></p>';
 
-let restaurante=ciudad.restaurantes[ultimaZona];
-let precioCena=45*personas;
-total+=precioCena;
-
-html+=`
-<p>21:00 Cena en ${restaurante}
-<span class="price">€${precioCena}</span></p>
-`;
-
-planningTexto+=`21:00 Cena en ${restaurante} €${precioCena}\n`;
+totalActividades += 25*personas;
 }
 
-html+=`</div>`;
+html += '<p>21:00 Cena en '+data.restaurantes[i % data.restaurantes.length]+
+'<span class="price">€'+(40*personas)+'</span></p>';
+
+totalActividades += 40*personas;
 }
 
-planningTexto+=`\nTOTAL ESTIMADO: €${total}`;
-
-document.getElementById("pantalla1").classList.add("hidden");
-document.getElementById("pantalla2").classList.remove("hidden");
-
-document.getElementById("tituloViaje").innerHTML=
-`Viaje ${origen} → ${destinoOriginal} (${dias} días)`;
-
-document.getElementById("resultado").innerHTML=
-html+
-`
-<div class="card">
-<p class="total">TOTAL ESTIMADO: €${total}</p>
-</div>
-`;
-
+html += '</div>';
 }
 
-function descargarPDF(){
-const { jsPDF } = window.jspdf;
-const doc = new jsPDF();
-doc.text(planningTexto,10,10);
-doc.save("planning-viaje.pdf");
-}
+html += '<div class="card">';
+html += '<p>Vuelo estimado: €'+data.vuelo+'</p>';
+html += '<p>Hotel estimado: €'+data.hotel+'</p>';
+html += '<p class="total">TOTAL APROXIMADO: €'+
+(totalActividades + data.vuelo + data.hotel)+
+'</p>';
+html += '</div>';
 
-function volver(){
-document.getElementById("pantalla2").classList.add("hidden");
-document.getElementById("pantalla1").classList.remove("hidden");
+document.getElementById("resultado").innerHTML = html;
+
 }
 
 </script>
-
 </body>
 </html>
+`);
+
+});
+
+/* ===================================================
+   INICIAR SERVIDOR
+=================================================== */
+
+app.listen(PORT, () => {
+  console.log("Servidor activo en http://localhost:5000");
+});
