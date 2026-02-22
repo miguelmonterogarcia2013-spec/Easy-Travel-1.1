@@ -3,17 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Global Travel Planner Pro</title>
+<title>Global Travel Planner PRO MAX</title>
 
 <style>
 body{
   font-family: Arial, sans-serif;
-  background:#f4f6fa;
+  background:#f2f4f8;
   margin:0;
   padding:20px;
 }
 .container{
-  max-width:1000px;
+  max-width:1100px;
   margin:auto;
 }
 h1{
@@ -24,4 +24,189 @@ select,input,button{
   width:100%;
   padding:12px;
   margin:8px 0;
-  border-radius:6px
+  border-radius:6px;
+  border:1px solid #ccc;
+}
+button{
+  background:#0d47a1;
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+}
+.card{
+  background:white;
+  padding:15px;
+  margin-top:15px;
+  border-radius:8px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.1);
+}
+.price{
+  float:right;
+  font-weight:bold;
+  color:#0d47a1;
+}
+.total{
+  font-size:20px;
+  font-weight:bold;
+  margin-top:10px;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<h1>🌍 Global Travel Planner PRO MAX</h1>
+
+<select id="city"></select>
+<input type="number" id="days" placeholder="Días de viaje">
+<input type="number" id="people" placeholder="Número de personas">
+
+<button onclick="generate()">Generar Itinerario</button>
+
+<div id="result"></div>
+
+</div>
+
+<script>
+
+/* ============================
+   100 CIUDADES (10x10)
+============================ */
+
+const countries = {
+"Francia":["París","Niza","Lyon","Marsella","Burdeos","Toulouse","Cannes","Estrasburgo","Montpellier","Lille"],
+"España":["Barcelona","Madrid","Sevilla","Valencia","Málaga","Granada","Bilbao","Córdoba","Salamanca","Alicante"],
+"Italia":["Roma","Venecia","Florencia","Milán","Nápoles","Pisa","Turín","Bolonia","Verona","Palermo"],
+"Estados Unidos":["Nueva York","Los Ángeles","Chicago","Orlando","Las Vegas","San Francisco","Miami","Boston","Washington","Atlanta"],
+"Japón":["Tokio","Kioto","Osaka","Hiroshima","Nara","Yokohama","Sapporo","Fukuoka","Kobe","Nagoya"],
+"Reino Unido":["Londres","Edimburgo","Manchester","Birmingham","Liverpool","Glasgow","Bath","Oxford","Cambridge","York"],
+"Tailandia":["Bangkok","Chiang Mai","Phuket","Pattaya","Krabi","Hua Hin","Ayutthaya","Koh Samui","Kanchanaburi","Sukhothai"],
+"México":["Ciudad de México","Cancún","Guadalajara","Monterrey","Puebla","Oaxaca","Tulum","Mérida","Los Cabos","San Miguel de Allende"],
+"China":["Pekín","Shanghái","Guangzhou","Shenzhen","Xi’an","Chengdu","Hangzhou","Chongqing","Hong Kong","Macao"],
+"Australia":["Sídney","Melbourne","Brisbane","Perth","Adelaida","Gold Coast","Cairns","Hobart","Darwin","Canberra"]
+};
+
+/* ============================
+   GENERAR SELECT
+============================ */
+
+const select = document.getElementById("city");
+
+for(const country in countries){
+  countries[country].forEach(city=>{
+    const option=document.createElement("option");
+    option.value=city;
+    option.textContent=city+" ("+country+")";
+    select.appendChild(option);
+  });
+}
+
+/* ============================
+   GENERADOR DE ACTIVIDADES
+============================ */
+
+function generateActivities(city){
+
+return [
+"10:00 Centro histórico de "+city,
+"13:00 Museo principal de "+city,
+"16:00 Monumento icónico de "+city,
+"18:30 Barrio emblemático de "+city,
+"10:00 Mercado tradicional de "+city,
+"13:00 Parque urbano de "+city,
+"16:00 Mirador panorámico de "+city,
+"18:30 Distrito cultural de "+city,
+"10:00 Palacio histórico de "+city,
+"13:00 Plaza principal de "+city,
+"16:00 Zona comercial famosa",
+"18:30 Ruta gastronómica local",
+"10:00 Excursión cercana a "+city,
+"13:00 Tour arquitectónico",
+"16:00 Galería de arte",
+"18:30 Paseo al atardecer"
+];
+
+}
+
+/* ============================
+   RESTAURANTE REAL GENÉRICO
+============================ */
+
+function getRestaurant(city){
+return "Hard Rock Cafe "+city;
+}
+
+/* ============================
+   GENERADOR
+============================ */
+
+function generate(){
+
+const city=document.getElementById("city").value;
+let days=parseInt(document.getElementById("days").value);
+const people=parseInt(document.getElementById("people").value);
+
+if(!days || !people){
+alert("Completa todos los campos");
+return;
+}
+
+const activities=generateActivities(city);
+
+let html="";
+let total=0;
+
+let uniqueDays=Math.floor(activities.length/4);
+
+if(days>uniqueDays+1){
+days=uniqueDays+1;
+}
+
+for(let d=0;d<days;d++){
+
+html+='<div class="card">';
+html+='<h3>Día '+(d+1)+' - '+city+'</h3>';
+
+if(d===days-1){
+
+html+='<p>10:00 Día libre</p>';
+let dinner=45*people;
+html+='<p>21:00 Cena en '+getRestaurant(city)+'<span class="price">€'+dinner+'</span></p>';
+total+=dinner;
+
+}else{
+
+let start=d*4;
+
+for(let i=0;i<4;i++){
+let price=30*people;
+html+='<p>'+activities[start+i]+'<span class="price">€'+price+'</span></p>';
+total+=price;
+}
+
+let dinner=45*people;
+html+='<p>21:00 Cena en '+getRestaurant(city)+'<span class="price">€'+dinner+'</span></p>';
+total+=dinner;
+}
+
+html+='</div>';
+}
+
+let flight=350*people;
+let hotel=150*people*days;
+
+html+='<div class="card">';
+html+='<p>Vuelo estimado: €'+flight+'</p>';
+html+='<p>Hotel estimado: €'+hotel+'</p>';
+html+='<p class="total">TOTAL APROXIMADO: €'+(total+flight+hotel)+'</p>';
+html+='</div>';
+
+document.getElementById("result").innerHTML=html;
+
+}
+
+</script>
+
+</body>
+</html>
