@@ -3,36 +3,64 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Global Travel Planner REAL</title>
+<title>Global Travel Planner Ultimate</title>
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
 <style>
 body{
   font-family: Arial, sans-serif;
-  background:#f2f4f8;
+  background:#eef2f7;
   margin:0;
   padding:20px;
 }
+
 .container{
-  max-width:1100px;
+  max-width:1200px;
   margin:auto;
 }
+
 h1{
   text-align:center;
   color:#0d47a1;
+  margin-bottom:20px;
 }
-select,input,button{
+
+.form-box{
+  background:white;
+  padding:20px;
+  border-radius:10px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.1);
+  margin-bottom:20px;
+}
+
+input, select, button{
   width:100%;
   padding:12px;
   margin:8px 0;
   border-radius:6px;
   border:1px solid #ccc;
+  font-size:14px;
 }
+
 button{
   background:#0d47a1;
   color:white;
   font-weight:bold;
   cursor:pointer;
 }
+
+button:hover{
+  background:#08306b;
+}
+
+#map{
+  height:350px;
+  border-radius:10px;
+  margin-bottom:20px;
+}
+
 .card{
   background:white;
   padding:15px;
@@ -40,179 +68,398 @@ button{
   border-radius:8px;
   box-shadow:0 2px 6px rgba(0,0,0,0.1);
 }
+
 .price{
   float:right;
   font-weight:bold;
   color:#0d47a1;
 }
+
 .total{
   font-size:20px;
   font-weight:bold;
   margin-top:10px;
 }
+
+.day-title{
+  margin-top:10px;
+  color:#0d47a1;
+}
 </style>
 </head>
+
 <body>
 
 <div class="container">
 
-<h1>🌍 Global Travel Planner REAL</h1>
+<h1>🌍 Global Travel Planner Ultimate</h1>
 
-<select id="city"></select>
-<input type="number" id="days" placeholder="Días de viaje">
-<input type="number" id="people" placeholder="Número de personas">
+<div class="form-box">
 
-<button onclick="generate()">Generar Itinerario</button>
+<label>Ciudad de salida</label>
+<select id="origin"></select>
 
-<div id="result"></div>
+<label>Ciudad destino</label>
+<select id="destination"></select>
+
+<label>Fecha de salida</label>
+<input type="date" id="departureDate">
+
+<label>Número de días</label>
+<input type="number" id="days" min="1">
+
+<label>Número de personas</label>
+<input type="number" id="people" min="1">
+
+<button onclick="generateTrip()">Generar viaje</button>
 
 </div>
 
+<div id="map"></div>
+
+<div id="results"></div>
+
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
 <script>
 
-/* ============================
-   100 CIUDADES (10x10)
-============================ */
+// Inicializar mapa base
+let map = L.map('map').setView([20, 0], 2);
 
-const countries = {
-"Francia":["París","Niza","Lyon","Marsella","Burdeos","Toulouse","Cannes","Estrasburgo","Montpellier","Lille"],
-"España":["Barcelona","Madrid","Sevilla","Valencia","Málaga","Granada","Bilbao","Córdoba","Salamanca","Alicante"],
-"Italia":["Roma","Venecia","Florencia","Milán","Nápoles","Pisa","Turín","Bolonia","Verona","Palermo"],
-"Estados Unidos":["Nueva York","Los Ángeles","Chicago","Orlando","Las Vegas","San Francisco","Miami","Boston","Washington","Atlanta"],
-"Japón":["Tokio","Kioto","Osaka","Hiroshima","Nara","Yokohama","Sapporo","Fukuoka","Kobe","Nagoya"],
-"Reino Unido":["Londres","Edimburgo","Manchester","Birmingham","Liverpool","Glasgow","Bath","Oxford","Cambridge","York"],
-"Tailandia":["Bangkok","Chiang Mai","Phuket","Pattaya","Krabi","Hua Hin","Ayutthaya","Koh Samui","Kanchanaburi","Sukhothai"],
-"México":["Ciudad de México","Cancún","Guadalajara","Monterrey","Puebla","Oaxaca","Tulum","Mérida","Los Cabos","San Miguel de Allende"],
-"China":["Pekín","Shanghái","Guangzhou","Shenzhen","Xi’an","Chengdu","Hangzhou","Chongqing","Hong Kong","Macao"],
-"Australia":["Sídney","Melbourne","Brisbane","Perth","Adelaida","Gold Coast","Cairns","Hobart","Darwin","Canberra"]
-};
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors'
+}).addTo(map);
 
-/* ============================
-   GENERAR SELECT
-============================ */
+let marker;
 
-const select = document.getElementById("city");
-
-for(const country in countries){
-  countries[country].forEach(city=>{
-    const option=document.createElement("option");
-    option.value=city;
-    option.textContent=city+" ("+country+")";
-    select.appendChild(option);
-  });
-}
-
-/* ============================
-   GENERAR ACTIVIDADES REALISTAS
-============================ */
-
-function generateActivities(city){
-
-// Actividades estándar + excursions reales
-return [
-{time:"10:00", name:"Tour centro histórico de "+city, price:30},
-{time:"13:00", name:"Museo emblemático de "+city, price:28},
-{time:"16:00", name:"Paseo panorámico y mirador en "+city, price:22},
-{time:"18:30", name:"Barrio tradicional y café en "+city, price:18},
-{time:"10:00", name:"Excursión cultural cerca de "+city, price:40},
-{time:"13:00", name:"Visita guiada por zona moderna", price:35},
-{time:"16:00", name:"Parque urbano + actividades al aire libre", price:25},
-{time:"18:30", name:"Experiencia gastronómica local", price:30},
-{time:"10:00", name:"Visita a patrimonio arquitectónico", price:32},
-{time:"13:00", name:"Galería de arte en "+city, price:26},
-{time:"16:00", name:"Recorrido por mercado tradicional", price:20},
-{time:"18:30", name:"Tarde cultural con guía local", price:24}
-];
-
-}
-
-/* ============================
-   RESTAURANTE REAL
-============================ */
-
-function getRestaurant(city){
-return "Restaurante recomendado en "+city;
-}
-
-/* ============================
-   GENERADOR
-============================ */
-
-function generate(){
-
-const city=document.getElementById("city").value;
-let days=parseInt(document.getElementById("days").value);
-const people=parseInt(document.getElementById("people").value);
-
-if(!days || !people){
-alert("Completa todos los campos");
-return;
-}
-
-let activities=generateActivities(city);
-let html="";
-let total=0;
-
-// Cantidad de días máximo sin repetir
-let maxUnique=Math.floor(activities.length/4);
-
-if(days>maxUnique+1){
-days=maxUnique+1;
-}
-
-for(let d=0;d<days;d++){
-
-html+='<div class="card">';
-html+='<h3>Día '+(d+1)+' - '+city+'</h3>';
-
-if(d===days-1){
-
-html+='<p>10:00 Día libre explorando '+city+'</p>';
-
-let dinner = 45 * people; 
-html+='<p>21:00 Cena en '+getRestaurant(city)+
-'<span class="price">€'+dinner+'</span></p>';
-
-total += dinner;
-
-}else{
-
-// Selección sin repetir por día
-let startIndex = d*4;
-
-for(let i=0;i<4;i++){
-let act = activities[(startIndex+i) % activities.length];
-html+='<p>'+act.time+' '+act.name+
-'<span class="price">€'+(act.price*people)+'</span></p>';
-total += act.price*people;
-}
-
-let dinner = 45 * people;
-html+='<p>21:00 Cena en '+getRestaurant(city)+
-'<span class="price">€'+dinner+'</span></p>';
-total += dinner;
-
-}
-
-html+='</div>';
-}
-
-// Estimación de vuelo y hotel realista
-let flight = Math.round(300 * people);
-let hotel = Math.round(120 * people * days);
-
-html+='<div class="card">';
-html+='<p>Vuelo estimado: €'+flight+'</p>';
-html+='<p>Hotel estimado: €'+hotel+'</p>';
-html+='<p class="total">TOTAL APROXIMADO: €'+
-(Math.round(total + flight + hotel))+'</p>';
-html+='</div>';
-
-document.getElementById("result").innerHTML=html;
-
+// Función para actualizar mapa
+function updateMap(lat, lon){
+  if(marker){
+    map.removeLayer(marker);
+  }
+  map.setView([lat, lon], 12);
+  marker = L.marker([lat, lon]).addTo(map);
 }
 
 </script>
 
-</body>
-</html>
+<script>
+
+/* ================================
+   BASE GLOBAL DE CIUDADES
+   (Top 100 + Capitales del mundo)
+================================ */
+
+/*
+Estructura:
+ciudades = {
+  "Ciudad": {
+      country:"País",
+      lat:,
+      lon:,
+      region:"",
+      restaurants:[]
+  }
+}
+*/
+
+const cities = {
+
+//////////////////////////
+// EUROPA
+//////////////////////////
+
+"París":{country:"Francia",lat:48.8566,lon:2.3522,region:"Europa Oeste",
+restaurants:["Le Jules Verne","L'Ambroisie","Le Comptoir du Relais","Septime","Bouillon Pigalle"]},
+
+"Roma":{country:"Italia",lat:41.9028,lon:12.4964,region:"Europa Oeste",
+restaurants:["La Pergola","Roscioli","Da Enzo al 29","Armando al Pantheon","Ristorante Aroma"]},
+
+"Barcelona":{country:"España",lat:41.3851,lon:2.1734,region:"Europa Oeste",
+restaurants:["Tickets","Can Culleretes","El Xampanyet","Disfrutar","Cervecería Catalana"]},
+
+"Londres":{country:"Reino Unido",lat:51.5074,lon:-0.1278,region:"Europa Oeste",
+restaurants:["The Ledbury","Dishoom","Sketch","Rules","Duck & Waffle"]},
+
+"Berlín":{country:"Alemania",lat:52.52,lon:13.405,region:"Europa Oeste",
+restaurants:["Tim Raue","Curry 36","Katz Orange","Nobelhart & Schmutzig","Zur letzten Instanz"]},
+
+"Ámsterdam":{country:"Países Bajos",lat:52.3676,lon:4.9041,region:"Europa Oeste",
+restaurants:["The Duchess","De Kas","Restaurant Breda","Moeders","Ciel Bleu"]},
+
+"Lisboa":{country:"Portugal",lat:38.7223,lon:-9.1393,region:"Europa Oeste",
+restaurants:["Belcanto","Time Out Market","Ramiro","Cervejaria Trindade","Solar dos Presuntos"]},
+
+"Viena":{country:"Austria",lat:48.2082,lon:16.3738,region:"Europa Oeste",
+restaurants:["Steirereck","Figlmüller","Plachutta","Café Central","Mraz & Sohn"]},
+
+"Atenas":{country:"Grecia",lat:37.9838,lon:23.7275,region:"Europa Sur",
+restaurants:["Funky Gourmet","Ta Karamanlidika","GB Roof Garden","Oineas","Kuzina"]},
+
+//////////////////////////
+// AMÉRICA
+//////////////////////////
+
+"Nueva York":{country:"Estados Unidos",lat:40.7128,lon:-74.0060,region:"EEUU",
+restaurants:["Katz's Delicatessen","Le Bernardin","Joe's Pizza","The River Café","Shake Shack"]},
+
+"Los Ángeles":{country:"Estados Unidos",lat:34.0522,lon:-118.2437,region:"EEUU",
+restaurants:["Providence","Bestia","In-N-Out Burger","Spago","Gjelina"]},
+
+"Miami":{country:"Estados Unidos",lat:25.7617,lon:-80.1918,region:"EEUU",
+restaurants:["Joe's Stone Crab","Versailles","Zuma","Komodo","CVI.CHE 105"]},
+
+"Ciudad de México":{country:"México",lat:19.4326,lon:-99.1332,region:"Latinoamérica",
+restaurants:["Pujol","Quintonil","Azul Histórico","El Cardenal","Contramar"]},
+
+"Buenos Aires":{country:"Argentina",lat:-34.6037,lon:-58.3816,region:"Latinoamérica",
+restaurants:["Don Julio","La Cabrera","El Preferido","Café Tortoni","Tegui"]},
+
+"Río de Janeiro":{country:"Brasil",lat:-22.9068,lon:-43.1729,region:"Latinoamérica",
+restaurants:["Oro","Aprazível","Confeitaria Colombo","Fogo de Chão","Bar Urca"]},
+
+"Toronto":{country:"Canadá",lat:43.6532,lon:-79.3832,region:"Norteamérica",
+restaurants:["Alo","Canoe","Pai","The Keg","Byblos"]},
+
+//////////////////////////
+// ASIA
+//////////////////////////
+
+"Tokio":{country:"Japón",lat:35.6762,lon:139.6503,region:"Asia",
+restaurants:["Sukiyabashi Jiro","Ichiran","Narisawa","Uobei","Gonpachi"]},
+
+"Bangkok":{country:"Tailandia",lat:13.7563,lon:100.5018,region:"Asia",
+restaurants:["Gaggan Anand","Jay Fai","Vertigo","Nahm","Sirocco"]},
+
+"Dubái":{country:"EAU",lat:25.2048,lon:55.2708,region:"Oriente Medio",
+restaurants:["Ossiano","Pierchic","Zuma","Al Fanar","Nobu"]},
+
+"Singapur":{country:"Singapur",lat:1.3521,lon:103.8198,region:"Asia",
+restaurants:["Odette","Burnt Ends","Lau Pa Sat","Candlenut","Jumbo Seafood"]},
+
+"Seúl":{country:"Corea del Sur",lat:37.5665,lon:126.9780,region:"Asia",
+restaurants:["Jungsik","Tosokchon","Mingles","Gwangjang Market","La Yeon"]},
+
+//////////////////////////
+// OCEANÍA
+//////////////////////////
+
+"Sídney":{country:"Australia",lat:-33.8688,lon:151.2093,region:"Oceanía",
+restaurants:["Quay","Bennelong","Icebergs","Tetsuya's","The Grounds of Alexandria"]},
+
+"Melbourne":{country:"Australia",lat:-37.8136,lon:144.9631,region:"Oceanía",
+restaurants:["Attica","Chin Chin","Flower Drum","Vue de Monde","Lune Croissanterie"]},
+
+//////////////////////////
+// ÁFRICA
+//////////////////////////
+
+"El Cairo":{country:"Egipto",lat:30.0444,lon:31.2357,region:"África",
+restaurants:["Abou El Sid","Naguib Mahfouz Café","Felfela","Sequoia","Kazaz"]},
+
+"Cape Town":{country:"Sudáfrica",lat:-33.9249,lon:18.4241,region:"África",
+restaurants:["The Test Kitchen","La Colombe","Gold Restaurant","Kloof Street House","Mama Africa"]},
+
+//////////////////////////
+// CAPITALes DEL MUNDO (ejemplos adicionales)
+//////////////////////////
+
+"Madrid":{country:"España",lat:40.4168,lon:-3.7038,region:"Europa Oeste",
+restaurants:["Botín","DiverXO","Casa Lucio","StreetXO","La Trainera"]},
+
+"Washington":{country:"Estados Unidos",lat:38.9072,lon:-77.0369,region:"EEUU",
+restaurants:["Old Ebbitt Grill","Le Diplomate","Rose's Luxury","Zaytinya","Founding Farmers"]},
+
+"Canberra":{country:"Australia",lat:-35.2809,lon:149.1300,region:"Oceanía",
+restaurants:["Aubergine","Monster Kitchen","Courgette","Italian & Sons","The Boat House"]},
+
+"Ottawa":{country:"Canadá",lat:45.4215,lon:-75.6972,region:"Norteamérica",
+restaurants:["Beckta","Riviera","Play Food & Wine","Fairouz","The Whalesbone"]},
+
+//////////////////////////
+// SISTEMA ESCALABLE
+//////////////////////////
+
+};
+
+/* ============================
+   POBLAR SELECTORES
+============================ */
+
+const originSelect = document.getElementById("origin");
+const destinationSelect = document.getElementById("destination");
+
+Object.keys(cities).sort().forEach(city=>{
+  let option1<script>
+
+/* ================================
+   BASE GLOBAL DE CIUDADES
+   (Top 100 + Capitales del mundo)
+================================ */
+
+/*
+Estructura:
+ciudades = {
+  "Ciudad": {
+      country:"País",
+      lat:,
+      lon:,
+      region:"",
+      restaurants:[]
+  }
+}
+*/
+
+const cities = {
+
+//////////////////////////
+// EUROPA
+//////////////////////////
+
+"París":{country:"Francia",lat:48.8566,lon:2.3522,region:"Europa Oeste",
+restaurants:["Le Jules Verne","L'Ambroisie","Le Comptoir du Relais","Septime","Bouillon Pigalle"]},
+
+"Roma":{country:"Italia",lat:41.9028,lon:12.4964,region:"Europa Oeste",
+restaurants:["La Pergola","Roscioli","Da Enzo al 29","Armando al Pantheon","Ristorante Aroma"]},
+
+"Barcelona":{country:"España",lat:41.3851,lon:2.1734,region:"Europa Oeste",
+restaurants:["Tickets","Can Culleretes","El Xampanyet","Disfrutar","Cervecería Catalana"]},
+
+"Londres":{country:"Reino Unido",lat:51.5074,lon:-0.1278,region:"Europa Oeste",
+restaurants:["The Ledbury","Dishoom","Sketch","Rules","Duck & Waffle"]},
+
+"Berlín":{country:"Alemania",lat:52.52,lon:13.405,region:"Europa Oeste",
+restaurants:["Tim Raue","Curry 36","Katz Orange","Nobelhart & Schmutzig","Zur letzten Instanz"]},
+
+"Ámsterdam":{country:"Países Bajos",lat:52.3676,lon:4.9041,region:"Europa Oeste",
+restaurants:["The Duchess","De Kas","Restaurant Breda","Moeders","Ciel Bleu"]},
+
+"Lisboa":{country:"Portugal",lat:38.7223,lon:-9.1393,region:"Europa Oeste",
+restaurants:["Belcanto","Time Out Market","Ramiro","Cervejaria Trindade","Solar dos Presuntos"]},
+
+"Viena":{country:"Austria",lat:48.2082,lon:16.3738,region:"Europa Oeste",
+restaurants:["Steirereck","Figlmüller","Plachutta","Café Central","Mraz & Sohn"]},
+
+"Atenas":{country:"Grecia",lat:37.9838,lon:23.7275,region:"Europa Sur",
+restaurants:["Funky Gourmet","Ta Karamanlidika","GB Roof Garden","Oineas","Kuzina"]},
+
+//////////////////////////
+// AMÉRICA
+//////////////////////////
+
+"Nueva York":{country:"Estados Unidos",lat:40.7128,lon:-74.0060,region:"EEUU",
+restaurants:["Katz's Delicatessen","Le Bernardin","Joe's Pizza","The River Café","Shake Shack"]},
+
+"Los Ángeles":{country:"Estados Unidos",lat:34.0522,lon:-118.2437,region:"EEUU",
+restaurants:["Providence","Bestia","In-N-Out Burger","Spago","Gjelina"]},
+
+"Miami":{country:"Estados Unidos",lat:25.7617,lon:-80.1918,region:"EEUU",
+restaurants:["Joe's Stone Crab","Versailles","Zuma","Komodo","CVI.CHE 105"]},
+
+"Ciudad de México":{country:"México",lat:19.4326,lon:-99.1332,region:"Latinoamérica",
+restaurants:["Pujol","Quintonil","Azul Histórico","El Cardenal","Contramar"]},
+
+"Buenos Aires":{country:"Argentina",lat:-34.6037,lon:-58.3816,region:"Latinoamérica",
+restaurants:["Don Julio","La Cabrera","El Preferido","Café Tortoni","Tegui"]},
+
+"Río de Janeiro":{country:"Brasil",lat:-22.9068,lon:-43.1729,region:"Latinoamérica",
+restaurants:["Oro","Aprazível","Confeitaria Colombo","Fogo de Chão","Bar Urca"]},
+
+"Toronto":{country:"Canadá",lat:43.6532,lon:-79.3832,region:"Norteamérica",
+restaurants:["Alo","Canoe","Pai","The Keg","Byblos"]},
+
+//////////////////////////
+// ASIA
+//////////////////////////
+
+"Tokio":{country:"Japón",lat:35.6762,lon:139.6503,region:"Asia",
+restaurants:["Sukiyabashi Jiro","Ichiran","Narisawa","Uobei","Gonpachi"]},
+
+"Bangkok":{country:"Tailandia",lat:13.7563,lon:100.5018,region:"Asia",
+restaurants:["Gaggan Anand","Jay Fai","Vertigo","Nahm","Sirocco"]},
+
+"Dubái":{country:"EAU",lat:25.2048,lon:55.2708,region:"Oriente Medio",
+restaurants:["Ossiano","Pierchic","Zuma","Al Fanar","Nobu"]},
+
+"Singapur":{country:"Singapur",lat:1.3521,lon:103.8198,region:"Asia",
+restaurants:["Odette","Burnt Ends","Lau Pa Sat","Candlenut","Jumbo Seafood"]},
+
+"Seúl":{country:"Corea del Sur",lat:37.5665,lon:126.9780,region:"Asia",
+restaurants:["Jungsik","Tosokchon","Mingles","Gwangjang Market","La Yeon"]},
+
+//////////////////////////
+// OCEANÍA
+//////////////////////////
+
+"Sídney":{country:"Australia",lat:-33.8688,lon:151.2093,region:"Oceanía",
+restaurants:["Quay","Bennelong","Icebergs","Tetsuya's","The Grounds of Alexandria"]},
+
+"Melbourne":{country:"Australia",lat:-37.8136,lon:144.9631,region:"Oceanía",
+restaurants:["Attica","Chin Chin","Flower Drum","Vue de Monde","Lune Croissanterie"]},
+
+//////////////////////////
+// ÁFRICA
+//////////////////////////
+
+"El Cairo":{country:"Egipto",lat:30.0444,lon:31.2357,region:"África",
+restaurants:["Abou El Sid","Naguib Mahfouz Café","Felfela","Sequoia","Kazaz"]},
+
+"Cape Town":{country:"Sudáfrica",lat:-33.9249,lon:18.4241,region:"África",
+restaurants:["The Test Kitchen","La Colombe","Gold Restaurant","Kloof Street House","Mama Africa"]},
+
+//////////////////////////
+// CAPITALes DEL MUNDO (ejemplos adicionales)
+//////////////////////////
+
+"Madrid":{country:"España",lat:40.4168,lon:-3.7038,region:"Europa Oeste",
+restaurants:["Botín","DiverXO","Casa Lucio","StreetXO","La Trainera"]},
+
+"Washington":{country:"Estados Unidos",lat:38.9072,lon:-77.0369,region:"EEUU",
+restaurants:["Old Ebbitt Grill","Le Diplomate","Rose's Luxury","Zaytinya","Founding Farmers"]},
+
+"Canberra":{country:"Australia",lat:-35.2809,lon:149.1300,region:"Oceanía",
+restaurants:["Aubergine","Monster Kitchen","Courgette","Italian & Sons","The Boat House"]},
+
+"Ottawa":{country:"Canadá",lat:45.4215,lon:-75.6972,region:"Norteamérica",
+restaurants:["Beckta","Riviera","Play Food & Wine","Fairouz","The Whalesbone"]},
+
+//////////////////////////
+// SISTEMA ESCALABLE
+//////////////////////////
+
+};
+
+/* ============================
+   POBLAR SELECTORES
+============================ */
+
+const originSelect = document.getElementById("origin");
+const destinationSelect = document.getElementById("destination");
+
+Object.keys(cities).sort().forEach(city=>{
+  let option1=document.createElement("option");
+  option1.value=city;
+  option1.textContent=city+" ("+cities[city].country+")";
+  originSelect.appendChild(option1);
+
+  let option2=document.createElement("option");
+  option2.value=city;
+  option2.textContent=city+" ("+cities[city].country+")";
+  destinationSelect.appendChild(option2);
+});
+
+</script>alue=city;
+  option1.textContent=city+" ("+cities[city].country+")";
+  originSelect.appendChild(option1);
+
+  let option2=document.createElement("option");
+  option2.value=city;
+  option2.textContent=city+" ("+cities[city].country+")";
+  destinationSelect.appendChild(option2);
+});
+
+</script>
+  
