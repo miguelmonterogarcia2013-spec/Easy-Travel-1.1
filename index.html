@@ -2,268 +2,118 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Travel Planner</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<title>Juego de Retos</title>
 
 <style>
 
 body{
 font-family:Arial;
-margin:0;
-background:linear-gradient(135deg,#0d47a1,#1565c0);
+background:#0f172a;
 color:white;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+margin:0;
 }
 
 .container{
-max-width:900px;
-margin:auto;
-padding:20px;
+text-align:center;
+max-width:400px;
 }
-
-h1{text-align:center;}
-
-input,select,button{
-width:100%;
-padding:12px;
-margin:8px 0;
-border-radius:8px;
-border:none;
-}
-
-input,select{color:black;}
-
-button{
-background:#ff9800;
-color:white;
-font-weight:bold;
-cursor:pointer;
-}
-
-button:hover{background:#f57c00;}
 
 .card{
-background:white;
-color:black;
-padding:15px;
+background:#1e293b;
+padding:30px;
 border-radius:10px;
-margin-top:15px;
-box-shadow:0 4px 10px rgba(0,0,0,0.3);
+margin-bottom:20px;
 }
 
-.price{
-float:right;
-font-weight:bold;
-color:#0d47a1;
+button{
+padding:12px 20px;
+margin:6px;
+border:none;
+border-radius:6px;
+cursor:pointer;
+font-size:16px;
 }
 
-#error{
-color:#ff5252;
-font-weight:bold;
+button:hover{
+opacity:0.8;
 }
 
-.summary{
-background:#fff3e0;
+.stats{
+font-size:20px;
 }
 
 </style>
+
 </head>
 
 <body>
 
 <div class="container">
 
-<h1>🌍 Travel Planner</h1>
+<h1>🎯 Juego de Retos</h1>
 
-<input id="city" placeholder="Escribe una ciudad (ej: paris)">
-<input type="number" id="days" placeholder="Número de días (mínimo 2)">
-<input type="number" id="people" placeholder="Número de personas">
+<div class="card">
+<h2>Reto actual</h2>
+<p id="reto"></p>
 
-<select id="hotel">
-<option value="90">Hotel 3⭐</option>
-<option value="150">Hotel 4⭐</option>
-<option value="300">Hotel 5⭐</option>
-</select>
+<button onclick="nuevoReto()">Nuevo reto</button>
+<button onclick="completarReto()">Completar</button>
+</div>
 
-<button onclick="generateTrip()">Generar viaje</button>
-<button onclick="downloadPDF()">Descargar PDF</button>
-
-<div id="error"></div>
-<div id="results"></div>
+<div class="stats">
+<p>⭐ Puntos: <span id="puntos">0</span></p>
+<p>🔥 Racha: <span id="racha">0</span> días</p>
+</div>
 
 </div>
 
 <script>
 
-/* =========================
-   BASE DE CIUDADES
-========================= */
-
-const cities={
-
-paris:{
-activities:["Torre Eiffel","Museo del Louvre","Montmartre","Notre Dame","Campos Elíseos","Versalles"],
-restaurants:["Le Jules Verne","Le Procope","Epicure","Café de Flore","L'Ambroisie"]
-},
-
-roma:{
-activities:["Coliseo","Museos Vaticanos","Fontana di Trevi","Panteón","Trastevere","Villa Borghese"],
-restaurants:["La Pergola","Roscioli","Da Enzo","Osteria Fortunata","Aroma"]
-},
-
-londres:{
-activities:["London Eye","British Museum","Tower Bridge","Camden Market","Buckingham Palace","Notting Hill"],
-restaurants:["Restaurant Gordon Ramsay","The Ivy","Dishoom","Flat Iron","Sketch"]
-},
-
-madrid:{
-activities:["Palacio Real","Museo del Prado","Parque del Retiro","Gran Vía","Bernabéu Tour","Templo de Debod"],
-restaurants:["Sobrino de Botín","Casa Lucio","Ramses","La Mi Venta","El Club Allard"]
-},
-
-barcelona:{
-activities:["Sagrada Familia","Parque Güell","Casa Batlló","Las Ramblas","Barceloneta","Camp Nou"],
-restaurants:["Tickets","Disfrutar","El Nacional","Can Culleretes","7 Portes"]
-}
-
-};
-
-/* generar 150 ciudades automáticamente */
-
-let baseNames=["tokyo","berlin","amsterdam","vienna","prague","lisbon","athens","dubai","newyork","losangeles"];
-
-for(let i=0;i<145;i++){
-
-let name=baseNames[i%baseNames.length]+i;
-
-cities[name]={
-
-activities:[
-"City Tour",
-"Museo principal",
-"Parque central",
-"Barrio histórico",
-"Mercado local",
-"Mirador panorámico"
-],
-
-restaurants:[
-"Restaurante Central",
-"Local Bistro",
-"Food Market",
-"Gourmet House",
-"City Restaurant"
+const retos = [
+"Haz 10 flexiones",
+"Bebe 2 vasos de agua",
+"Camina 2000 pasos",
+"Lee 5 páginas de un libro",
+"No uses el móvil durante 20 minutos",
+"Ahorra 1€",
+"Respira profundo durante 2 minutos",
+"Ordena tu habitación",
+"Aprende una palabra nueva en inglés",
+"Haz 20 saltos"
 ]
 
-};
+let puntos = 0
+let racha = 0
+
+const retoTexto = document.getElementById("reto")
+const puntosTexto = document.getElementById("puntos")
+const rachaTexto = document.getElementById("racha")
+
+function nuevoReto(){
+
+const random = Math.floor(Math.random()*retos.length)
+
+retoTexto.innerText = retos[random]
 
 }
 
-/* =========================
-   GENERADOR
-========================= */
+function completarReto(){
 
-let lastTrip="";
+puntos += 10
+racha += 1
 
-function generateTrip(){
+puntosTexto.innerText = puntos
+rachaTexto.innerText = racha
 
-document.getElementById("error").innerHTML="";
-document.getElementById("results").innerHTML="";
-
-let city=document.getElementById("city").value.toLowerCase();
-let days=parseInt(document.getElementById("days").value);
-let people=parseInt(document.getElementById("people").value);
-let hotel=parseInt(document.getElementById("hotel").value);
-
-if(!cities[city]){
-document.getElementById("error").innerHTML="Ciudad no disponible.";
-return;
-}
-
-if(days<2){
-document.getElementById("error").innerHTML="Mínimo 2 días.";
-return;
-}
-
-let data=cities[city];
-
-let total=0;
-let html="";
-
-let hotelTotal=hotel*days*people;
-total+=hotelTotal;
-
-html+=`<div class="card">
-<h2>${city.toUpperCase()}</h2>
-<p>🏨 Hotel total: €${hotelTotal}</p>
-</div>`;
-
-for(let d=1;d<=days;d++){
-
-html+=`<div class="card"><h3>Día ${d}</h3>`;
-
-if(d===days){
-
-html+=`<p>10:00 - 21:00 Día libre</p>`;
-
-}else{
-
-let hour=10;
-
-for(let i=0;i<5;i++){
-
-let act=data.activities[(i+d)%data.activities.length];
-
-html+=`<p>${hour}:00 ${act}
-<span class="price">€${30*people}</span></p>`;
-
-total+=30*people;
-
-hour+=2;
+alert("🎉 Reto completado!")
 
 }
 
-}
-
-let rest=data.restaurants[d%data.restaurants.length];
-
-html+=`<p>21:00 Cena en ${rest}
-<span class="price">€${60*people}</span></p>`;
-
-total+=60*people;
-
-html+=`</div>`;
-
-}
-
-html+=`<div class="card summary">
-<h2>Total estimado viaje: €${total}</h2>
-</div>`;
-
-document.getElementById("results").innerHTML=html;
-
-lastTrip=html;
-
-}
-
-/* =========================
-   PDF
-========================= */
-
-function downloadPDF(){
-
-if(!lastTrip) return;
-
-const { jsPDF }=window.jspdf;
-
-const doc=new jsPDF();
-
-doc.text("Resumen de viaje generado.",10,10);
-
-doc.save("viaje.pdf");
-
-}
+nuevoReto()
 
 </script>
 
